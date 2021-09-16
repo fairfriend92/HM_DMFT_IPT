@@ -134,8 +134,8 @@ for i, U in enumerate(urange):
     plt.plot(w, -shift_s*i + sigma_loc.imag, color='b', label='Imaginary part')
     plt.plot(w, -shift_s*i + sigma_loc.real, color='r', label='Real part')
     
-    np.savetxt(".\data\Green_U=%s.txt"%U, np.transpose([w,gloc.real,gloc.imag]))
-    np.savetxt(".\data\Sigma_U=%s.txt"%U, np.transpose([w,sigma_loc.real,sigma_loc.imag]))
+    np.savetxt("./data/Green_U=%s.txt"%U, np.transpose([w,gloc.real,gloc.imag]))
+    np.savetxt("./data/Sigma_U=%s.txt"%U, np.transpose([w,sigma_loc.real,sigma_loc.imag]))
 
 # Save rho(omega)
 plt.figure(1)
@@ -144,7 +144,7 @@ plt.ylabel(r'$\rho$')
 plt.xlim([-4, 4])
 plt.ylim([-shift_g*len(urange), shift_g])
 plt.yticks(-shift_g * np.arange(len(urange)), ['U=' + str(u) for u in urange])
-plt.savefig(".\figures\DOS.png")
+plt.savefig("./figures/DOS.png")
 
 # save sigma(omega)
 plt.figure(2)
@@ -154,5 +154,5 @@ plt.xlim([-4, 4])
 plt.ylim([-shift_s*len(urange), shift_s])
 plt.yticks(-shift_s * np.arange(len(urange)), ['U=' + str(u) for u in urange])
 plt.legend()
-plt.savefig(".\figures\sigma.png")
+plt.savefig("./figures/sigma.png")
 
