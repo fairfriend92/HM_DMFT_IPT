@@ -90,69 +90,89 @@ Analytic continuation of Matsubara Green fucntion. Applies
 Hilbert transform to the DOS of the Bethe lattice.
 '''
 def semi_circle_hiltrans(zeta, D=1):
-    # D     Bandwidth
     # zeta  Frequencies in the Z plane
+    # D     Bandwidth
     
     sqr = np.sqrt(zeta**2 - D**2)
     sqr = np.sign(sqr.imag) * sqr
     return 2 * (zeta - sqr) / D**2
-   
-'''
-MAIN LOOP
-'''
-
-w = np.arange(-20, 20, 0.01)            # Frequencies  
-gloc = semi_circle_hiltrans(w + 1e-3j)  # Local Green function
-beta = 100.0                            # 1/temp
-urange = [0.5, 1.0, 1.5, 4.0]           # On site interaction term   
-
-shift_g = 2
-shift_s = 45
-  
-for i, U in enumerate(urange):
-    print("U=%s"%(U))
-    gloc, sigma_loc = ss_dmft_loop(gloc, w, U, beta, 1e-10)
     
-    # Select rho(omega) figure
-    plt.figure(1)
+def setup_figure(fig_idx, loop_idx, shift):
+    plt.figure(fig_idx)
     
     # Always choose same plot properties
     plt.gca().set_prop_cycle(None)
     
     # Shift vertically plot
-    plt.axhline(-shift_g*i, color='k', lw=0.5)
+    plt.axhline(-shift*loop_idx, color='k', lw=0.5)
     
-    # Plot rho(omega)
-    plt.plot(w, -shift_g*i + -gloc.imag)
+def save_figure(fig_idx, x_label, y_label, x_lim, shift):
+    plt.figure(fig_idx)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.xlim(x_lim)
+    plt.ylim([-shift * len(print_range), shift])
+    plt.yticks(-shift * np.arange(len(print_range)), ['U=' + str(u) for u in print_range])
+   
+'''
+MAIN LOOP
+'''
+
+dw = 0.01                               # Frequency increase
+w = np.arange(-20, 20, dw)              # Frequencies  
+gloc = semi_circle_hiltrans(w + 1e-3j)  # Local Green function
+beta_range = [200, 100, 64]             # 1/temp
+urange = np.arange(0.5, 5.0, 0.125)     # On site interaction term  
+print_range = [0.5, 2.5, 3.5, 4.5]      # U values for which files should be saved
+n_U_beta = []                           # Occupation number
+
+shift_g = 2
+shift_s = 40
+shift_n = 2
+
+for beta in beta_range:  
+    n_beta = []
+    print("beta="+str(beta))  
+    j = 0
+    for i, U in enumerate(urange):
+        #print("U=%s"%(U))        
+        
+        gloc, sigma_loc = ss_dmft_loop(gloc, w, U, beta, 1e-10)
     
-    # Select sigma(omega) figure
-    plt.figure(2)
+        # Electron concentration for temp 1/beta and energy w
+        n_beta.append(np.sum(-gloc.imag/np.pi * fermi_dist(w, beta) * dw))
+        
+        if beta == 100 and U in print_range:
+            # Plot rho(omega)
+            setup_figure(1, j, shift_g)    
+            plt.plot(w, -shift_g*j + -gloc.imag)
+            
+            # Plot sigma(omega)
+            setup_figure(2, j, shift_s)
+            plt.plot(w, -shift_s*j + sigma_loc.imag, color='b', label='Imaginary part')
+            plt.plot(w, -shift_s*j + sigma_loc.real, color='r', label='Real part')  
+            
+            j = j+1
+            
+            np.savetxt("./data/Green_U=%s.txt"%U, np.transpose([w,gloc.real,gloc.imag]))
+            np.savetxt("./data/Sigma_U=%s.txt"%U, np.transpose([w,sigma_loc.real,sigma_loc.imag]))            
+    n_U_beta.append(n_beta)
     
-    # Plot sigma(omega)
-    plt.gca().set_prop_cycle(None)
-    plt.axhline(-shift_s*i, color='k', lw=0.5)
-    plt.plot(w, -shift_s*i + sigma_loc.imag, color='b', label='Imaginary part')
-    plt.plot(w, -shift_s*i + sigma_loc.real, color='r', label='Real part')
-    
-    np.savetxt("./data/Green_U=%s.txt"%U, np.transpose([w,gloc.real,gloc.imag]))
-    np.savetxt("./data/Sigma_U=%s.txt"%U, np.transpose([w,sigma_loc.real,sigma_loc.imag]))
 
 # Save rho(omega)
-plt.figure(1)
-plt.xlabel(r'$\omega$')
-plt.ylabel(r'$\rho$')
-plt.xlim([-4, 4])
-plt.ylim([-shift_g*len(urange), shift_g])
-plt.yticks(-shift_g * np.arange(len(urange)), ['U=' + str(u) for u in urange])
+save_figure(1, r'$\omega$', r'$\rho$', [-4, 4], shift_g)
 plt.savefig("./figures/DOS.png")
 
-# save sigma(omega)
-plt.figure(2)
-plt.xlabel(r'$\omega$')
-plt.ylabel(r'$\Sigma$')
-plt.xlim([-4, 4])
-plt.ylim([-shift_s*len(urange), shift_s])
-plt.yticks(-shift_s * np.arange(len(urange)), ['U=' + str(u) for u in urange])
+# Save sigma(omega)
+save_figure(2, r'$\omega$', r'$\Sigma$', [-4, 4], shift_s)
 plt.legend()
 plt.savefig("./figures/sigma.png")
 
+# Save n(omega)
+plt.figure(3)
+plt.xlabel('U')
+plt.ylabel('n')
+for i in range(len(beta_range)):
+    plt.plot(urange, n_U_beta[i], label=r'$\beta$='+str(beta_range[i]))
+plt.legend()
+plt.savefig("./figures/n.png")
