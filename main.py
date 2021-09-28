@@ -118,11 +118,11 @@ def save_figure(fig_idx, x_label, y_label, x_lim, shift):
 '''
 Fourier transform using spectral function
 '''
-def f_tau(f, tau, beta):
+def f_tau(f, tau, beta):    
     rho_w = - 1 / np.pi * f.imag
     if -beta < tau and tau < 0:
         tau = tau+beta
-    return np.sum(rho_w * np.exp(-tau*w_range) / (1 + np.exp(-beta*w_range)) * dw)
+    return np.sum(rho_w * np.exp(-tau*w_range) / (1 + np.exp(-beta*w_range)) * dw)   
    
 '''
 MAIN LOOP
@@ -173,13 +173,14 @@ for beta in beta_range:
         
         # Double occupancy
         dtau = beta/100
-        tau_range = np.arange(0, beta, dtau, dtype=np.float128)
+        tau_range = np.arange(0, beta+1, dtau, dtype=np.float128)
         nn = 0
         gloc_tau = []
         for tau in tau_range:
             g = f_tau(gloc, tau, beta)
+            s = f_tau(sigma_loc, beta-tau-2, beta)
             gloc_tau.append(g)
-            nn += -1/U * g * f_tau(sigma_loc, beta-tau, beta) * dtau
+            nn += -1/U * g * s * dtau
         nn_beta.append(n**2 + nn)
         
         # Effective mass
