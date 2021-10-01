@@ -129,7 +129,8 @@ MAIN LOOP
 '''
 dw = 0.01                                               # Frequency increase
 w_range = np.arange(-15, 15, dw, dtype=np.float128)     # Frequencies  
-beta_range = np.arange(32, 164, 16, dtype=np.float128)  # 1/temp
+#beta_range = np.arange(32, 164, 16, dtype=np.float128)  # 1/temp
+beta_range = [100]
 U_range = np.arange(0.5, 5.0, 0.125)                    # On site interaction term  
 print_range = [0.5, 2.5, 3.5, 4.5]                      # U values for which files should be saved
 
@@ -171,17 +172,21 @@ for beta in beta_range:
         n = np.sum(-gloc.imag/np.pi * fermi_dist(w_range, beta) * dw)
         n_beta.append(n)
         
-        # Double occupancy
+        # G(tau)        
         dtau = beta/100
         tau_range = np.arange(0, beta+1, dtau, dtype=np.float128)
         nn = 0
         gloc_tau = []
         for tau in tau_range:
             g = f_tau(gloc, tau, beta)
-            s = f_tau(sigma_loc, beta-tau-2, beta)
             gloc_tau.append(g)
+            '''
+            s = f_tau(sigma_loc, beta-tau, beta)            
             nn += -1/U * g * s * dtau
-        nn_beta.append(n**2 + nn)
+            '''
+        # Double occupancy    
+        gsigma = gloc.real*sigma_loc.imag + gloc.imag*(sigma_loc.real + U*n)
+        nn_beta.append(-1/np.pi*np.sum(fermi_dist(w_range, beta)*gsigma)*dw)
         
         # Effective mass
         dSigma = (sigma_loc[w0_idx+1].real-sigma_loc[w0_idx].real)/dw
