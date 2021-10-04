@@ -186,7 +186,7 @@ for beta in beta_range:
             '''
         # Double occupancy    
         gsigma = gloc.real*sigma_loc.imag + gloc.imag*(sigma_loc.real + U*n)
-        nn_beta.append(-1/np.pi*np.sum(fermi_dist(w_range, beta)*gsigma)*dw)
+        nn_beta.append(-1/(U*np.pi)*np.sum(fermi_dist(w_range, beta)*gsigma)*dw)
         
         # Effective mass
         dSigma = (sigma_loc[w0_idx+1].real-sigma_loc[w0_idx].real)/dw
