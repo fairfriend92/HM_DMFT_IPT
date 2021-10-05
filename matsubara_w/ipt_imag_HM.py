@@ -156,23 +156,32 @@ beta = 50.0
 t = 0.5
 Nwn = 256 # check whther this no is consistent with the FFT criteria
 tau, wn = gf. tau_wn_setup(beta,Nwn)
-#print(wn)
 G_iwn = gf.greenF(wn, sigma=0, mu=0, D=1)
+
 U_list = np.arange(0.5, 5.0, 0.125)
 U_print = np.arange(0.5, 5.0, 0.5)
-w = np.arange(-15, 15, 0.01)
+dw = 0.01
+w = np.arange(-15, 15, dw)
+
 dos_U = []
+n_U = []
 
 # Main loop
 for U in U_list:
     G_iwn, Sig_iwn = dmft_loop(U, t, G_iwn, wn, tau, mix=1, conv=1e-3)
    
-    #g_tau = gf.gw_invfouriertrans(G_iwn, tau, wn, tail_coef=(1., 0., 0.))
     if U in U_print:
+        # Analytic continuation using Pade
         g_w = gf.pade_continuation(G_iwn, wn, w, w_set=None)
+        
+        # DOS
         dos_U.append(-g_w.imag)
+        
+        # Electron concentration for temp 1/beta and energy w_range
+        n = np.sum(-g_w.imag/np.pi * gf.fermi_dist(w, beta) * dw)
+        n_U.append(n)
     
-# Print figures
+# Print DOS
 fig, axs = plt.subplots(len(U_print), sharex=True, sharey=True)
 for i in range(len(U_print)):
     axs[i].set(xlabel=r'$\omega$')
@@ -180,3 +189,12 @@ for i in range(len(U_print)):
 
 fig.supylabel(r'$\rho(\omega)$')
 plt.savefig("./figures/dos.png")
+
+# Print n
+# Save occupation number
+plt.figure(0)
+plt.xlabel('U')
+plt.ylabel('n')
+plt.plot(U_print, n_U)
+plt.savefig("./figures/n.png")
+plt.close(0)
