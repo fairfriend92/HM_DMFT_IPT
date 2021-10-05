@@ -141,8 +141,9 @@ def gt_fouriertrans(g_tau, tau, w_n, tail_coef=(1., 0., 0.)):
     beta = tau[1] + tau[-1]
     freq_tail, time_tail = freq_tail_fourier(tail_coef, beta, tau, w_n)
 
-    gtau = g_tau - time_tail
-    return beta * ifft(gtau * np.exp(1j * np.pi * tau / beta))[..., :len(w_n)] + freq_tail
+    gtau = g_tau - time_tail    
+    gt = beta * ifft(gtau * np.exp(1j * np.pi * tau / beta))[..., :len(w_n)]    
+    return np.append(gt, np.zeros(len(freq_tail)-len(gt))) + freq_tail
 
 
 def fermi_dist(energy, beta):
@@ -348,7 +349,7 @@ def pade_rec(pc, w, w_n):
 
 
 def pade_continuation(gfunc, w_n, w, w_set=None):
-    """Continate the green Function by Padé
+    """Continuate the green Function by Padé
 
     Parameters
     ----------

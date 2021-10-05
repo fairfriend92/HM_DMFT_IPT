@@ -34,13 +34,15 @@ from scipy.optimize import fsolve
 import numpy as np
 from common import gt_fouriertrans, gw_invfouriertrans
 import common as gf
-
+import matplotlib.pylab as plt
 
 def single_band_ipt_solver(u_int, g_0_iwn, w_n, tau):
     r"""Given a Green function it returns a dressed one and the self-energy
 
     .. math:: \Sigma(\tau) \approx U^2 \mathcal{G}^0(\tau)^3
 
+    Dyson eq.:
+    
     .. math:: G = \mathcal{G}^0(i\omega_n)/(1 - \Sigma(i\omega_n)\mathcal{G}^0(i\omega_n))
 
     The Fourier transforms use as tail expansion of the atomic limit self-enegy
@@ -59,9 +61,11 @@ def single_band_ipt_solver(u_int, g_0_iwn, w_n, tau):
     """
 
     g_0_tau = gw_invfouriertrans(g_0_iwn, tau, w_n, [1., 0., 0.25])
-    sigma_tau = u_int**2 * g_0_tau**3
+    # IPT self-energy using G0 of quantum impurity
+    sigma_tau = u_int**2 * g_0_tau**3 
     sigma_iwn = gt_fouriertrans(sigma_tau, tau, w_n, [u_int**2 / 4., 0., 0.])
-    g_iwn = g_0_iwn / (1 - sigma_iwn * g_0_iwn)
+    # Dyson eq.
+    g_iwn = g_0_iwn / (1 - sigma_iwn * g_0_iwn) 
 
     return g_iwn, sigma_iwn
 
@@ -97,6 +101,7 @@ def dmft_loop(u_int, t, g_iwn, w_n, tau, mix=1, conv=1e-3):
     iw_n = 1j * w_n
     while not converged:
         g_iwn_old = g_iwn.copy()
+        # Non-interacting GF of quantum impurity
         g_0_iwn = 1. / (iw_n - t**2 * g_iwn_old)
         g_iwn, sigma_iwn = single_band_ipt_solver(u_int, g_0_iwn, w_n, tau)
         # Clean for Half-fill
@@ -110,7 +115,6 @@ def dmft_loop(u_int, t, g_iwn, w_n, tau, mix=1, conv=1e-3):
 
 ###############################################################################
 # Energy calculations
-
 
 def ekin(g_iw, s_iw, beta, w_n, ek_mean, g_iwfree):
     """Calculates the Kinetic Energy
@@ -154,8 +158,25 @@ Nwn = 256 # check whther this no is consistent with the FFT criteria
 tau, wn = gf. tau_wn_setup(beta,Nwn)
 #print(wn)
 G_iwn = gf.greenF(wn, sigma=0, mu=0, D=1)
-U_list = [1.0]
+U_list = np.arange(0.5, 5.0, 0.125)
+U_print = np.arange(0.5, 5.0, 0.5)
+w = np.arange(-15, 15, 0.01)
+dos_U = []
 
-
+# Main loop
 for U in U_list:
-	G_iwn, Sig_iwn = dmft_loop(U, t, G_iwn, wn, tau, mix=1, conv=1e-3)
+    G_iwn, Sig_iwn = dmft_loop(U, t, G_iwn, wn, tau, mix=1, conv=1e-3)
+   
+    #g_tau = gf.gw_invfouriertrans(G_iwn, tau, wn, tail_coef=(1., 0., 0.))
+    if U in U_print:
+        g_w = gf.pade_continuation(G_iwn, wn, w, w_set=None)
+        dos_U.append(-g_w.imag)
+    
+# Print figures
+fig, axs = plt.subplots(len(U_print), sharex=True, sharey=True)
+for i in range(len(U_print)):
+    axs[i].set(xlabel=r'$\omega$')
+    axs[i].plot(w, dos_U[i])      
+
+fig.supylabel(r'$\rho(\omega)$')
+plt.savefig("./figures/dos.png")
