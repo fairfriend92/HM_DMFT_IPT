@@ -88,7 +88,9 @@ def greenF(w_n, sigma=0, mu=0, D=1):
     sq = np.sqrt((zeta)**2 - D**2)
     sig = np.sign(sq.imag * w_n)
     return 2. / (zeta + sig * sq)
-
+    
+def g_k_w(e_k, w_n, sigma, mu=0):
+    return 1/(1.j*w_n + mu - e_k - sigma)
 
 def semi_circle_hiltrans(zeta, D=1):
     """Calculate the Hilbert transform with a semicircular DOS
@@ -106,6 +108,10 @@ def semi_circle(energy, hopping):
     """Bethe lattice in inf dim density of states"""
     energy = np.asarray(energy).clip(-2 * hopping, 2 * hopping)
     return np.sqrt(4 * hopping**2 - energy**2) / (2 * np.pi * hopping**2)
+    
+def bethe_dos(t, e):
+    D = 2*t
+    return 2*np.sqrt(D**2 - e**2) / (np.pi * D**2)
 
 
 def gt_fouriertrans(g_tau, tau, w_n, tail_coef=(1., 0., 0.)):

@@ -151,25 +151,37 @@ def epot(g_iw, s_iw, u, beta, w_n):
     return (s_iw * g_iw + u**2 / 4. / w_n**2).real.sum() / beta - beta * u**2 / 32. + u / 8
 
 
+# Parameters
+beta = 50.0 # 1/T
+t = 0.5     # Hopping
+Nwn = 256   # Num of freq: Check if it is consistent with FFT criteria
 
-beta = 50.0
-t = 0.5
-Nwn = 256 # check whther this no is consistent with the FFT criteria
+U_list = np.arange(0.5, 5.0, 0.125) # Interaction strength
+U_print = np.arange(0.5, 5.0, 0.5)  # Values when obs should be computed
+
+# Hysteresis
+hyst = 1
+if (hyst):
+    U_list = np.append(U_list, np.arange(5.0, 0.375, -0.125))
+    U_print = np.append(U_print, U_print[::-1])
+
+dw = 0.01                       # Real freq differential
+w = np.arange(-15, 15, dw)      # Real freq
+de = t/10                       # Energy differential
+e = np.arange(-2*t, 2*t, de)    # Energy
+
 tau, wn = gf. tau_wn_setup(beta,Nwn)
 G_iwn = gf.greenF(wn, sigma=0, mu=0, D=1)
 
-U_list = np.arange(0.5, 5.0, 0.125)
-U_print = np.arange(0.5, 5.0, 0.5)
-dw = 0.01
-w = np.arange(-15, 15, dw)
-
+# Observables
 dos_U = []
 n_U = []
+Ekin_U = []
 
 # Main loop
 for U in U_list:
     G_iwn, Sig_iwn = dmft_loop(U, t, G_iwn, wn, tau, mix=1, conv=1e-3)
-   
+    
     if U in U_print:
         # Analytic continuation using Pade
         g_w = gf.pade_continuation(G_iwn, wn, w, w_set=None)
@@ -180,10 +192,19 @@ for U in U_list:
         # Electron concentration for temp 1/beta and energy w_range
         n = np.sum(-g_w.imag/np.pi * gf.fermi_dist(w, beta) * dw)
         n_U.append(n)
+        
+        # Kinetic energy
+        Ekin = 0
+        # Sum over Matsubara freq
+        for n in range(Nwn):
+            # Integral in epsilong
+            Ekin += 1/beta * np.sum(de * e * gf.bethe_dos(t, e) * gf.g_k_w(e, wn[n], Sig_iwn[n], mu=0))
+        Ekin_U.append(Ekin.real)
     
 # Print DOS
-fig, axs = plt.subplots(len(U_print), sharex=True, sharey=True)
-for i in range(len(U_print)):
+plots = int(len(U_print)/2) if hyst else len(U_print)
+fig, axs = plt.subplots(plots, sharex=True, sharey=True)
+for i in range(plots):
     axs[i].set(xlabel=r'$\omega$')
     axs[i].plot(w, dos_U[i])      
 
@@ -191,10 +212,17 @@ fig.supylabel(r'$\rho(\omega)$')
 plt.savefig("./figures/dos.png")
 
 # Print n
-# Save occupation number
 plt.figure(0)
 plt.xlabel('U')
 plt.ylabel('n')
 plt.plot(U_print, n_U)
 plt.savefig("./figures/n.png")
+plt.close(0)
+
+# Print kinetic energy
+plt.figure(0)
+plt.xlabel('U')
+plt.ylabel(r'$E_K$')
+plt.plot(U_print, Ekin_U)
+plt.savefig("./figures/Ekin.png")
 plt.close(0)
