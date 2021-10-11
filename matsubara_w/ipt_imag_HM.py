@@ -152,17 +152,18 @@ def epot(g_iw, s_iw, u, beta, w_n):
 
 
 # Parameters
-beta = 50.0 # 1/T
 t = 0.5     # Hopping
 Nwn = 256   # Num of freq: Check if it is consistent with FFT criteria
 
-U_list = np.arange(0.5, 5.0, 0.125) # Interaction strength
-U_print = np.arange(0.5, 5.0, 0.5)  # Values when obs should be computed
+U_max = 5.
+U_list = np.arange(0.5, U_max, 0.125) # Interaction strength
+U_print = np.arange(0.5, U_max, 0.5)  # Values when obs should be computed
+beta_list = np.arange(16, 160, 16)    # Inverse of temperature
 
 # Hysteresis
-hyst = 1
+hyst = 1    
 if (hyst):
-    U_list = np.append(U_list, np.arange(5.0, 0.375, -0.125))
+    U_list = np.append(U_list, np.arange(U_max, 0.375, -0.125))
     U_print = np.append(U_print, U_print[::-1])
 
 dw = 0.01                       # Real freq differential
@@ -170,36 +171,63 @@ w = np.arange(-15, 15, dw)      # Real freq
 de = t/10                       # Energy differential
 e = np.arange(-2*t, 2*t, de)    # Energy
 
-tau, wn = gf. tau_wn_setup(beta,Nwn)
-G_iwn = gf.greenF(wn, sigma=0, mu=0, D=1)
-
 # Observables
 dos_U = []
 n_U = []
+d_U = []
 Ekin_U = []
+m_eff_U = []
+phase_U = []
 
 # Main loop
-for U in U_list:
-    G_iwn, Sig_iwn = dmft_loop(U, t, G_iwn, wn, tau, mix=1, conv=1e-3)
+for beta in beta_list:
+    # Generate Matsubara freq
+    tau, wn = gf. tau_wn_setup(beta, Nwn)
     
-    if U in U_print:
+    # Seed green function
+    G_iwn = gf.greenF(wn, sigma=0, mu=0, D=1)
+    
+    # Index of zero frequency
+    w0_idx = int(len(w)/2)
+            
+    phase_beta = []
+
+    for U in U_list:
+        G_iwn, Sig_iwn = dmft_loop(U, t, G_iwn, wn, tau, mix=1, conv=1e-3)
+        
         # Analytic continuation using Pade
         g_w = gf.pade_continuation(G_iwn, wn, w, w_set=None)
+        sig_w = gf.pade_continuation(Sig_iwn, wn, w, w_set=None)
         
-        # DOS
-        dos_U.append(-g_w.imag)
+        # Phase of material, 0 for metallic, 1 for insulating
+        phase = -1 if -g_w[w0_idx].imag > 0.1 else 1
+        phase_beta.append(phase)  
         
-        # Electron concentration for temp 1/beta and energy w_range
-        n = np.sum(-g_w.imag/np.pi * gf.fermi_dist(w, beta) * dw)
-        n_U.append(n)
-        
-        # Kinetic energy
-        Ekin = 0
-        # Sum over Matsubara freq
-        for n in range(Nwn):
-            # Integral in epsilong
-            Ekin += 1/beta * np.sum(de * e * gf.bethe_dos(t, e) * gf.g_k_w(e, wn[n], Sig_iwn[n], mu=0))
-        Ekin_U.append(Ekin.real)
+        if U in U_print and beta == 64:
+            # DOS
+            dos_U.append(-g_w.imag)
+            
+            # Electron concentration for temp 1/beta and energy w
+            n = np.sum(-g_w.imag/np.pi * gf.fermi_dist(w, beta) * dw)
+            n_U.append(n)
+            
+            # Double occupancy
+            d = n**2 + 1/(U*beta)*np.sum(G_iwn*Sig_iwn)
+            d_U.append(d.real)
+            
+            # Kinetic energy
+            Ekin = 0
+            # Sum over Matsubara freq
+            for n in range(Nwn):
+                # Integral in epsilon
+                Ekin += 1/beta * np.sum(de * e * gf.bethe_dos(t, e) * gf.g_k_w(e, wn[n], Sig_iwn[n], mu=0))
+            Ekin_U.append(Ekin.real)
+            
+            # Effective mass
+            dSig = (sig_w[w0_idx+1].real-sig_w[w0_idx].real)/dw
+            m_eff_U.append(1/(1-dSig))
+    
+    phase_U.append(phase_beta)
     
 # Print DOS
 plots = int(len(U_print)/2) if hyst else len(U_print)
@@ -208,21 +236,56 @@ for i in range(plots):
     axs[i].set(xlabel=r'$\omega$')
     axs[i].plot(w, dos_U[i])      
 
-fig.supylabel(r'$\rho(\omega)$')
+fig.supylabel(r'$\rho(\omega)$')    
 plt.savefig("./figures/dos.png")
 
 # Print n
-plt.figure(0)
+plt.figure()
 plt.xlabel('U')
 plt.ylabel('n')
 plt.plot(U_print, n_U)
 plt.savefig("./figures/n.png")
-plt.close(0)
+plt.close()
+
+# Print d
+plt.figure()
+plt.xlabel('U')
+plt.ylabel('d')
+plt.plot(U_print, d_U)
+plt.savefig("./figures/d.png")
+plt.close()
 
 # Print kinetic energy
-plt.figure(0)
+plt.figure()
 plt.xlabel('U')
 plt.ylabel(r'$E_K$')
 plt.plot(U_print, Ekin_U)
 plt.savefig("./figures/Ekin.png")
-plt.close(0)
+
+# Print effective mass
+plt.figure()
+plt.xlabel('U')
+plt.ylabel(r'$m^*$')
+plt.plot(U_print, m_eff_U)
+plt.savefig("./figures/m_eff.png")
+
+# Print phase diagram
+plt.figure()
+plt.xlabel('U')
+plt.ylabel('T')
+T_list = [1/beta for beta in beta_list]    # Convert from beta to temp
+T_list = np.flipud(T_list)                 # Sort in increasing order
+phase_U = np.flipud(phase_U)
+phase_diag = []
+if hyst:
+    for phase_beta in phase_U:
+        inc_U = phase_beta[:int(len(U_list)/2)]
+        dec_U = phase_beta[int(len(U_list)/2)+1:]
+        dec_U = np.flipud(dec_U)
+        final = inc_U + dec_U
+        phase_diag.append(final)
+        
+im_edges = [U_list[0], U_max,
+            T_list[0], T_list[len(T_list)-1]]
+plt.imshow(phase_diag, interpolation='none', extent=im_edges, aspect='auto')
+plt.savefig("./figures/phase_diag.png")
