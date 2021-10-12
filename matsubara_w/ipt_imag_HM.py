@@ -158,7 +158,8 @@ Nwn = 256   # Num of freq: Check if it is consistent with FFT criteria
 U_max = 5.
 U_list = np.arange(0.5, U_max, 0.125) # Interaction strength
 U_print = np.arange(0.5, U_max, 0.5)  # Values when obs should be computed
-beta_list = np.arange(16, 160, 16)    # Inverse of temperature
+beta_list = np.arange(10, 240, 5)     # Inverse of temperature
+beta_print = np.arange(0, 240, 50)
 
 # Hysteresis
 hyst = 1    
@@ -176,7 +177,7 @@ dos_U = []
 n_U = []
 d_U = []
 Ekin_U = []
-m_eff_U = []
+Z_U = []
 phase_U = []
 
 # Main loop
@@ -189,7 +190,12 @@ for beta in beta_list:
     
     # Index of zero frequency
     w0_idx = int(len(w)/2)
-            
+    
+    dos_beta = []
+    n_beta = []
+    d_beta = []
+    Ekin_beta = []
+    Z_beta = []
     phase_beta = []
 
     for U in U_list:
@@ -200,20 +206,20 @@ for beta in beta_list:
         sig_w = gf.pade_continuation(Sig_iwn, wn, w, w_set=None)
         
         # Phase of material, 0 for metallic, 1 for insulating
-        phase = -1 if -g_w[w0_idx].imag > 0.1 else 1
+        phase = -1 if -g_w[w0_idx].imag > 1e-2 else 1
         phase_beta.append(phase)  
         
-        if U in U_print and beta == 64:
+        if U in U_print and beta in beta_print:
             # DOS
-            dos_U.append(-g_w.imag)
+            dos_beta.append(-g_w.imag)
             
             # Electron concentration for temp 1/beta and energy w
             n = np.sum(-g_w.imag/np.pi * gf.fermi_dist(w, beta) * dw)
-            n_U.append(n)
+            n_beta.append(n)
             
             # Double occupancy
             d = n**2 + 1/(U*beta)*np.sum(G_iwn*Sig_iwn)
-            d_U.append(d.real)
+            d_beta.append(d.real)
             
             # Kinetic energy
             Ekin = 0
@@ -221,53 +227,76 @@ for beta in beta_list:
             for n in range(Nwn):
                 # Integral in epsilon
                 Ekin += 1/beta * np.sum(de * e * gf.bethe_dos(t, e) * gf.g_k_w(e, wn[n], Sig_iwn[n], mu=0))
-            Ekin_U.append(Ekin.real)
+            Ekin_beta.append(Ekin.real)
             
-            # Effective mass
+            # Quasi-particle weight
             dSig = (sig_w[w0_idx+1].real-sig_w[w0_idx].real)/dw
-            m_eff_U.append(1/(1-dSig))
+            Z_beta.append(1/(1-dSig))
     
+    dos_U.append(dos_beta)
+    n_U.append(n_beta)
+    d_U.append(d_beta)
+    Ekin_U.append(Ekin_beta)
+    Z_U.append(Z_beta)
     phase_U.append(phase_beta)
     
 # Print DOS
-plots = int(len(U_print)/2) if hyst else len(U_print)
-fig, axs = plt.subplots(plots, sharex=True, sharey=True)
-for i in range(plots):
-    axs[i].set(xlabel=r'$\omega$')
-    axs[i].plot(w, dos_U[i])      
-
-fig.supylabel(r'$\rho(\omega)$')    
-plt.savefig("./figures/dos.png")
+for i in range(len(beta_print)):
+    dos = dos_U[i]
+    beta = beta_print[i]
+    plots = int(len(U_print)/2) if hyst else len(U_print)
+    fig, axs = plt.subplots(plots, sharex=True, sharey=True)
+    for i in range(plots):
+        axs[i].set(xlabel=r'$\omega$')
+        axs[i].plot(w, dos[i])   
+    fig.supylabel(r'$\rho(\omega)$')    
+    plt.title(r'$\beta=$'+str(beta))
+    plt.savefig("./figures/dos_beta"+str(beta)+".png")
+    plt.close()
 
 # Print n
 plt.figure()
-plt.xlabel('U')
-plt.ylabel('n')
-plt.plot(U_print, n_U)
+for i in range(len(beta_print)):
+    n = n_U[i]
+    beta = beta_print[i]    
+    plt.xlabel('U')
+    plt.ylabel('n')
+    plt.plot(U_print, n, label=str(beta))
+    plt.legend()
 plt.savefig("./figures/n.png")
-plt.close()
 
 # Print d
 plt.figure()
-plt.xlabel('U')
-plt.ylabel('d')
-plt.plot(U_print, d_U)
+for i in range(len(beta_print)):
+    d = d_U[i]
+    beta = beta_print[i]    
+    plt.xlabel('U')
+    plt.ylabel('d')
+    plt.plot(U_print, d, label=str(beta))
+    plt.legend()
 plt.savefig("./figures/d.png")
-plt.close()
 
 # Print kinetic energy
 plt.figure()
-plt.xlabel('U')
-plt.ylabel(r'$E_K$')
-plt.plot(U_print, Ekin_U)
+for i in range(len(beta_print)):
+    Ekin = Ekin_U[i]
+    beta = beta_print[i]
+    plt.xlabel('U')
+    plt.ylabel(r'$E_K$')
+    plt.plot(U_print, Ekin, label=str(beta))
+    plt.legend()
 plt.savefig("./figures/Ekin.png")
 
-# Print effective mass
+# Print quasi-particle weight
 plt.figure()
-plt.xlabel('U')
-plt.ylabel(r'$m^*$')
-plt.plot(U_print, m_eff_U)
-plt.savefig("./figures/m_eff.png")
+for i in range(len(beta_print)):
+    Z = Z_U[i]
+    beta = beta_print[i]
+    plt.xlabel('U')
+    plt.ylabel('Z')
+    plt.plot(U_print, Z, label=str(beta))
+    plt.legend()
+plt.savefig("./figures/Z.png")
 
 # Print phase diagram
 plt.figure()
