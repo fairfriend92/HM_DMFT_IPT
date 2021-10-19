@@ -156,10 +156,12 @@ t = 0.5     # Hopping
 Nwn = 256   # Num of freq: Check if it is consistent with FFT criteria
 
 U_max = 5.
-U_list = np.arange(0.5, U_max, 0.125) # Interaction strength
-U_print = np.arange(0.5, U_max, 0.5)  # Values when obs should be computed
-beta_list = np.arange(10, 240, 5)     # Inverse of temperature
-beta_print = np.arange(0, 240, 50)
+U_list = np.arange(0.5, U_max, 0.125)    # Interaction strength
+U_print = np.arange(0.5, U_max, 0.125)   # Values when obs should be computed
+#beta_list = np.arange(10, 240, 10)      # Inverse of temperature
+#beta_print = np.arange(10, 240, 50)
+beta_list = [50]
+beta_print = [50]
 
 # Hysteresis
 hyst = 1    
@@ -179,6 +181,7 @@ d_U = []
 Ekin_U = []
 Z_U = []
 phase_U = []
+Gwn_U = []
 
 # Main loop
 for beta in beta_list:
@@ -197,6 +200,7 @@ for beta in beta_list:
     Ekin_beta = []
     Z_beta = []
     phase_beta = []
+    Gwn_beta = []
 
     for U in U_list:
         G_iwn, Sig_iwn = dmft_loop(U, t, G_iwn, wn, tau, mix=1, conv=1e-3)
@@ -210,6 +214,9 @@ for beta in beta_list:
         phase_beta.append(phase)  
         
         if U in U_print and beta in beta_print:
+            # Save Matsubara Green function
+            Gwn_beta.append(G_iwn)
+            
             # DOS
             dos_beta.append(-g_w.imag)
             
@@ -226,19 +233,21 @@ for beta in beta_list:
             # Sum over Matsubara freq
             for n in range(Nwn):
                 # Integral in epsilon
-                Ekin += 1/beta * np.sum(de * e * gf.bethe_dos(t, e) * gf.g_k_w(e, wn[n], Sig_iwn[n], mu=0))
+                Ekin += 2/beta * np.sum(de * e * gf.bethe_dos(t, e) * gf.g_k_w(e, wn[n], Sig_iwn[n], mu=0.0))
             Ekin_beta.append(Ekin.real)
             
             # Quasi-particle weight
             dSig = (sig_w[w0_idx+1].real-sig_w[w0_idx].real)/dw
             Z_beta.append(1/(1-dSig))
     
-    dos_U.append(dos_beta)
-    n_U.append(n_beta)
-    d_U.append(d_beta)
-    Ekin_U.append(Ekin_beta)
-    Z_U.append(Z_beta)
-    phase_U.append(phase_beta)
+    if beta in beta_print:
+        dos_U.append(dos_beta)
+        n_U.append(n_beta)
+        d_U.append(d_beta)
+        Ekin_U.append(Ekin_beta)
+        Z_U.append(Z_beta)
+        phase_U.append(phase_beta)
+        Gwn_U.append(Gwn_beta)
     
 # Print DOS
 for i in range(len(beta_print)):
@@ -246,12 +255,41 @@ for i in range(len(beta_print)):
     beta = beta_print[i]
     plots = int(len(U_print)/2) if hyst else len(U_print)
     fig, axs = plt.subplots(plots, sharex=True, sharey=True)
-    for i in range(plots):
-        axs[i].set(xlabel=r'$\omega$')
-        axs[i].plot(w, dos[i])   
+    for j in range(plots):
+        axs[j].set(xlabel=r'$\omega$')
+        axs[j].plot(w, dos[j])   
     fig.supylabel(r'$\rho(\omega)$')    
     plt.title(r'$\beta=$'+str(beta))
-    plt.savefig("./figures/dos_beta"+str(beta)+".png")
+    plt.savefig("./figures/dos_beta="+str(beta)+".png")
+    plt.close()
+
+# Print Matsubara Green function
+for i in range(len(beta_print)):
+    beta = beta_print[i]
+    Gwn = Gwn_U[i]
+    for j in range(len(U_print)):
+        U = U_print[j]
+        plt.figure()
+        plt.xlabel(r'$\omega_n$')
+        plt.ylabel(r'$G(\omega_n)$')
+        plt.plot(wn, Gwn[j].imag, label='imaginary')
+        plt.plot(wn, Gwn[j].real, label='real')
+        plt.legend()
+        plt.savefig("./figures/Gwn/Gwn_beta="+str(beta)+"_U="+str(U)+".png")
+        plt.close()
+
+# Print zero-freq Matsubara Green function
+for i in range(len(beta_print)):
+    beta = beta_print[i]
+    Gwn = Gwn_U[i]
+    Gw0 = []
+    for g in Gwn:
+        Gw0.append(g[0].imag)
+    plt.figure()
+    plt.xlabel(r'$U$')
+    plt.ylabel(r'$G(\omega_0)$')
+    plt.plot(U_print, Gw0)
+    plt.savefig("./figures/Gw0/Gw0_beta="+str(beta)+".png")
     plt.close()
 
 # Print n
@@ -283,6 +321,8 @@ for i in range(len(beta_print)):
     beta = beta_print[i]
     plt.xlabel('U')
     plt.ylabel(r'$E_K$')
+    plt.xlim(2, 3.5)
+    plt.ylim(-0.5, 0)
     plt.plot(U_print, Ekin, label=str(beta))
     plt.legend()
 plt.savefig("./figures/Ekin.png")
