@@ -55,12 +55,18 @@ def tau_wn_setup(beta,Nwn):
     """
 
     w_n = matsubara_freq(beta, Nwn)
-    tau = np.arange(0, beta, Nwn / 2 / len(w_n))
+    
+    '''
+    Rodo's comment: when including beta in tau array, sampling must be
+    greater than 2. 100 works ok
+    '''
+    sample = 1e2
+    tau = np.arange(0, beta+1/sample, Nwn / sample / len(w_n)) # Nwn = len(w_n)
 
     return tau, w_n
 
 
-def greenF(w_n, sigma=0, mu=0, D=1):
+def greenF(w_n, sigma, mu, D):
     r"""Calculate the Bethe lattice Green function, defined as part of the
     hilbert transform.
 
@@ -144,7 +150,8 @@ def gt_fouriertrans(g_tau, tau, w_n, tail_coef=(1., 0., 0.)):
     freq_tail_fourier
     gt_fouriertrans"""
 
-    beta = tau[1] + tau[-1]
+    #beta = tau[1] + tau[-1] # Un-comment if tau doesnt include beta 
+    beta = tau[-1]
     freq_tail, time_tail = freq_tail_fourier(tail_coef, beta, tau, w_n)
 
     gtau = g_tau - time_tail    
@@ -193,7 +200,6 @@ def freq_tail_fourier(tail_coef, beta, tau, w_n):
 
     return freq_tail, time_tail
 
-
 def gw_invfouriertrans(g_iwn, tau, w_n, tail_coef=(1., 0., 0.)):
     r"""Performs an inverse fourier transform of the green Function in which
     only the imaginary positive matsubara frequencies
@@ -236,7 +242,8 @@ def gw_invfouriertrans(g_iwn, tau, w_n, tail_coef=(1., 0., 0.)):
     freq_tail_fourier
     """
 
-    beta = tau[1] + tau[-1]
+    #beta = tau[1] + tau[-1] # Un-comment if tau doesnt include beta 
+    beta = tau[-1]
     freq_tail, time_tail = freq_tail_fourier(tail_coef, beta, tau, w_n)
 
     giwn = g_iwn - freq_tail

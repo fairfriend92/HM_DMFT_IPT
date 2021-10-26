@@ -36,7 +36,7 @@ from common import gt_fouriertrans, gw_invfouriertrans
 import common as gf
 import matplotlib.pylab as plt
 
-def single_band_ipt_solver(u_int, g_0_iwn, w_n, tau):
+def single_band_ipt_solver(u_int, g_0_iwn_up, g_0_iwn_dn, w_n, tau):
     r"""Given a Green function it returns a dressed one and the self-energy
 
     .. math:: \Sigma(\tau) \approx U^2 \mathcal{G}^0(\tau)^3
@@ -60,17 +60,24 @@ def single_band_ipt_solver(u_int, g_0_iwn, w_n, tau):
         Imaginary time points, not included edge point of :math:`\beta^-`
     """
 
-    g_0_tau = gw_invfouriertrans(g_0_iwn, tau, w_n, [1., 0., 0.25])
+    beta = tau[-1]
+    g_0_tau_up = gw_invfouriertrans(g_0_iwn_up, tau, w_n, [1., 0., 0.25])
+    g_0_tb_up = [g_0_tau_up[len(tau)-1-t] for t in range(len(tau))]
+    g_0_tau_dn = gw_invfouriertrans(g_0_iwn_dn, tau, w_n, [1., 0., 0.25])
+    g_0_tb_dn = [g_0_tau_dn[len(tau)-1-t] for t in range(len(tau))]    
     # IPT self-energy using G0 of quantum impurity
-    sigma_tau = u_int**2 * g_0_tau**3 
-    sigma_iwn = gt_fouriertrans(sigma_tau, tau, w_n, [u_int**2 / 4., 0., 0.])
+    sigma_tau_up = u_int**2 * g_0_tau_up * g_0_tb_dn * g_0_tau_dn
+    sigma_tau_dn = u_int**2 * g_0_tau_dn * g_0_tb_up * g_0_tau_up
+    sigma_iwn_up = gt_fouriertrans(sigma_tau_up, tau, w_n, [u_int**2 / 4., 0., 0.])
+    sigma_iwn_dn = gt_fouriertrans(sigma_tau_dn, tau, w_n, [u_int**2 / 4., 0., 0.])
     # Dyson eq.
-    g_iwn = g_0_iwn / (1 - sigma_iwn * g_0_iwn) 
+    g_iwn_up = g_0_iwn_up / (1 - sigma_iwn_up * g_0_iwn_up)
+    g_iwn_dn = g_0_iwn_dn / (1 - sigma_iwn_dn * g_0_iwn_dn)    
 
-    return g_iwn, sigma_iwn
+    return g_iwn_up, g_iwn_dn, sigma_iwn_up, sigma_iwn_dn
 
 
-def dmft_loop(u_int, t, g_iwn, w_n, tau, mix=1, conv=1e-3):
+def dmft_loop(u_int, t, g_iwn_up, g_iwn_dn, w_n, tau, mix=1, conv=1e-3):
     r"""Performs the paramagnetic(spin degenerate) self-consistent loop in a
     bethe lattice given the input
 
@@ -100,68 +107,33 @@ def dmft_loop(u_int, t, g_iwn, w_n, tau, mix=1, conv=1e-3):
     loops = 0
     iw_n = 1j * w_n
     while not converged:
-        g_iwn_old = g_iwn.copy()
+        g_iwn_up_old = g_iwn_up.copy()
+        g_iwn_dn_old = g_iwn_dn.copy()
         # Non-interacting GF of quantum impurity
-        g_0_iwn = 1. / (iw_n - t**2 * g_iwn_old)
-        g_iwn, sigma_iwn = single_band_ipt_solver(u_int, g_0_iwn, w_n, tau)
+        g_0_iwn_up = 1. / (iw_n - t**2 * g_iwn_up_old)
+        g_0_iwn_dn = 1. / (iw_n - t**2 * g_iwn_dn_old)
+        g_iwn_up, g_iwn_dn, sigma_iwn_up, sigma_iwn_dn = single_band_ipt_solver(u_int, g_0_iwn_up, g_0_iwn_dn, w_n, tau)
         # Clean for Half-fill
-        g_iwn.real = 0.
-        converged = np.allclose(g_iwn_old, g_iwn, conv)
+        g_iwn_up.real = g_iwn_dn.real = 0.
+        converged = np.allclose(g_iwn_up_old, g_iwn_up, conv) and np.allclose(g_iwn_dn_old, g_iwn_dn, conv)
         loops += 1
         if loops > 500:
             converged = True
-        g_iwn = mix * g_iwn + (1 - mix) * g_iwn_old
-    return g_iwn, sigma_iwn
-
-###############################################################################
-# Energy calculations
-
-def ekin(g_iw, s_iw, beta, w_n, ek_mean, g_iwfree):
-    """Calculates the Kinetic Energy
-    """
-    return 2 * (1j * w_n * (g_iw - g_iwfree) - s_iw * g_iw).real.sum() / beta + ek_mean
-
-
-def ekin_tau(g_iw, tau, w_n, u_int):
-    gt = gw_invfouriertrans(g_iw, tau, w_n, [1., 0., u_int**2 / 4 + 0.25])
-    return -0.5 * simps(gt * gt, tau)
-
-
-def epot(g_iw, s_iw, u, beta, w_n):
-    r"""Calculates the Potential Energy
-
-    Using the local Green Function and self energy the potential
-    energy is calculated using :ref:`potential_energy`
-
-    Taking the tail of this product to decay in the half-filled single
-    band case as:
-
-    .. math:: \Sigma G \rightarrow \frac{U^2}{4(i\omega_n)^2}
-
-    The potential energy per spin is calculated by
-
-    .. math:: \langle V \rangle = \frac{1}{\beta} \sum_{n} \frac{1}{2} (\Sigma(i\omega_n)G(i\omega_n) - \frac{U^2}{4(i\omega_n)^2} + \frac{U^2}{4(i\omega_n)^2})
-    .. math:: = \frac{1}{\beta} \sum_{n>0} \Re e (\Sigma(i\omega_n)G(i\omega_n) - \frac{U^2}{4(i\omega_n)^2}) + \frac{U^2}{8\beta} \sum_{n} \frac{1}{(i\omega_n)^2}
-    .. math:: = \frac{1}{\beta} \sum_{n>0} \Re e (\Sigma(i\omega_n)G(i\omega_n) - \frac{U^2}{4(i\omega_n)^2}) - \frac{U^2\beta}{32}
-
-    """
-    # the last u/8 is because sigma to zero order has the Hartree term
-    # that is avoided in IPT Sigma=U/2. Then times G->1/2 after sum
-    # and times 1/2 of the formula
-    return (s_iw * g_iw + u**2 / 4. / w_n**2).real.sum() / beta - beta * u**2 / 32. + u / 8
-
+        g_iwn_up = mix * g_iwn_up + (1 - mix) * g_iwn_up_old
+        g_iwn_dn = mix * g_iwn_dn + (1 - mix) * g_iwn_dn_old
+    return g_iwn_up, g_iwn_dn, sigma_iwn_up, sigma_iwn_dn
 
 # Parameters
 t = 0.5     # Hopping
 Nwn = 256   # Num of freq: Check if it is consistent with FFT criteria
 
 U_max = 5.
-U_list = np.arange(0.5, U_max, 0.125)    # Interaction strength
-U_print = np.arange(0.5, U_max, 0.125)   # Values when obs should be computed
-#beta_list = np.arange(10, 240, 10)      # Inverse of temperature
+U_list = np.arange(0.5, U_max, 0.125)   # Interaction strength
+U_print = np.arange(0.5, U_max, 0.5)    # Values when obs should be computed
+beta_list = np.arange(10, 240, 10)      # Inverse of temperature
 #beta_print = np.arange(10, 240, 50)
-beta_list = [50]
-beta_print = [50]
+#U_list = U_print = [2.5]
+beta_list = beta_print = [50]
 
 # Hysteresis
 hyst = 1    
@@ -175,21 +147,26 @@ de = t/10                       # Energy differential
 e = np.arange(-2*t, 2*t, de)    # Energy
 
 # Observables
+tau_U = []
 dos_U = []
 n_U = []
 d_U = []
 Ekin_U = []
 Z_U = []
 phase_U = []
-Gwn_U = []
+Gwn_U_up = []
+Gwn_U_dn = []
+Gtau_U_up = []
+Gtau_U_dn = []
 
 # Main loop
 for beta in beta_list:
     # Generate Matsubara freq
-    tau, wn = gf. tau_wn_setup(beta, Nwn)
+    tau, wn = gf. tau_wn_setup(beta, Nwn) 
     
     # Seed green function
-    G_iwn = gf.greenF(wn, sigma=0, mu=0, D=1)
+    G_iwn_up = gf.greenF(wn, 1, 0, 2*t)
+    G_iwn_dn = gf.greenF(wn, -1, 0, 2*t)
     
     # Index of zero frequency
     w0_idx = int(len(w)/2)
@@ -200,28 +177,44 @@ for beta in beta_list:
     Ekin_beta = []
     Z_beta = []
     phase_beta = []
-    Gwn_beta = []
+    Gwn_beta_up = []
+    Gwn_beta_dn = []
+    Gtau_beta_up = []
+    Gtau_beta_dn = []
 
     for U in U_list:
-        G_iwn, Sig_iwn = dmft_loop(U, t, G_iwn, wn, tau, mix=1, conv=1e-3)
+        G_iwn_up, G_iwn_dn, Sig_iwn_up, Sig_iwn_dn = dmft_loop(U, t, G_iwn_up, G_iwn_dn, wn, tau, mix=1, conv=1e-3)
+        
+        G_iwn = G_iwn_up
+        Sig_iwn = Sig_iwn_up
+        
+        # Imaginary time Green function
+        G_tau_up = gw_invfouriertrans(G_iwn_up, tau, wn, [1., 0., 0.25])
+        G_tau_dn = gw_invfouriertrans(G_iwn_dn, tau, wn, [1., 0., 0.25])
         
         # Analytic continuation using Pade
-        g_w = gf.pade_continuation(G_iwn, wn, w, w_set=None)
-        sig_w = gf.pade_continuation(Sig_iwn, wn, w, w_set=None)
+        #g_w = gf.pade_continuation(G_iwn, wn, w, w_set=None)
+        #sig_w = gf.pade_continuation(Sig_iwn, wn, w, w_set=None)
         
         # Phase of material, 0 for metallic, 1 for insulating
+        '''
         phase = -1 if -g_w[w0_idx].imag > 1e-2 else 1
         phase_beta.append(phase)  
+        '''
         
         if U in U_print and beta in beta_print:
-            # Save Matsubara Green function
-            Gwn_beta.append(G_iwn)
+            # Save Green functions
+            Gwn_beta_up.append(G_iwn_up)
+            Gwn_beta_dn.append(G_iwn_dn)
+            Gtau_beta_up.append(G_tau_up)
+            Gtau_beta_dn.append(G_tau_dn)
             
             # DOS
-            dos_beta.append(-g_w.imag)
+            #dos_beta.append(-g_w.imag/np.pi)
             
             # Electron concentration for temp 1/beta and energy w
-            n = np.sum(-g_w.imag/np.pi * gf.fermi_dist(w, beta) * dw)
+            #n = np.sum(-g_w.imag/np.pi * gf.fermi_dist(w, beta) * dw)
+            n = np.sum(G_iwn.real) + 0.5
             n_beta.append(n)
             
             # Double occupancy
@@ -237,19 +230,24 @@ for beta in beta_list:
             Ekin_beta.append(Ekin.real)
             
             # Quasi-particle weight
-            dSig = (sig_w[w0_idx+1].real-sig_w[w0_idx].real)/dw
-            Z_beta.append(1/(1-dSig))
+            #dSig = (sig_w[w0_idx+1].real-sig_w[w0_idx].real)/dw
+            #Z_beta.append(1/(1-dSig))
     
     if beta in beta_print:
+        tau_U.append(tau)
         dos_U.append(dos_beta)
         n_U.append(n_beta)
         d_U.append(d_beta)
         Ekin_U.append(Ekin_beta)
         Z_U.append(Z_beta)
         phase_U.append(phase_beta)
-        Gwn_U.append(Gwn_beta)
+        Gwn_U_up.append(Gwn_beta_up)
+        Gwn_U_dn.append(Gwn_beta_dn)
+        Gtau_U_up.append(Gtau_beta_up)
+        Gtau_U_dn.append(Gtau_beta_dn)
     
 # Print DOS
+'''
 for i in range(len(beta_print)):
     dos = dos_U[i]
     beta = beta_print[i]
@@ -262,26 +260,47 @@ for i in range(len(beta_print)):
     plt.title(r'$\beta=$'+str(beta))
     plt.savefig("./figures/dos_beta="+str(beta)+".png")
     plt.close()
+'''
 
-# Print Matsubara Green function
+# Print Green functions
 for i in range(len(beta_print)):
     beta = beta_print[i]
-    Gwn = Gwn_U[i]
+    tau = tau_U[i]
+    Gwn_up = Gwn_U_up[i]
+    Gwn_dn = Gwn_U_dn[i]
+    Gtau_up = Gtau_U_up[i]
+    Gtau_dn = Gtau_U_dn[i]
     for j in range(len(U_print)):
         U = U_print[j]
+        
+        # Matsubara Green function
         plt.figure()
         plt.xlabel(r'$\omega_n$')
         plt.ylabel(r'$G(\omega_n)$')
-        plt.plot(wn, Gwn[j].imag, label='imaginary')
-        plt.plot(wn, Gwn[j].real, label='real')
+        plt.plot(wn, Gwn_up[j].imag, label=r'$\sigma=\uparrow$ Im')
+        plt.plot(wn, Gwn_up[j].real, label=r'$\sigma=\uparrow$ Re')
+        plt.plot(wn, Gwn_dn[j].imag, label=r'$\sigma=\downarrow$ Im')
+        plt.plot(wn, Gwn_dn[j].real, label=r'$\sigma=\downarrow$ Re')
         plt.legend()
         plt.savefig("./figures/Gwn/Gwn_beta="+str(beta)+"_U="+str(U)+".png")
+        plt.close()
+        
+        # Imaginary time Green function
+        plt.figure()
+        plt.xlabel(r'$\tau$')
+        plt.ylabel(r'$G(\tau)$')
+        plt.plot(tau, Gtau_up[j].imag, label=r'$\sigma=\uparrow$ Im')
+        plt.plot(tau, Gtau_up[j].real, label=r'$\sigma=\uparrow$ Re')
+        plt.plot(tau, Gtau_dn[j].imag, label=r'$\sigma=\downarrow$ Im')
+        plt.plot(tau, Gtau_dn[j].real, label=r'$\sigma=\downarrow$ Re')
+        plt.legend()
+        plt.savefig("./figures/Gtau/Gtau_beta="+str(beta)+"_U="+str(U)+".png")
         plt.close()
 
 # Print zero-freq Matsubara Green function
 for i in range(len(beta_print)):
     beta = beta_print[i]
-    Gwn = Gwn_U[i]
+    Gwn = Gwn_U_up[i]
     Gw0 = []
     for g in Gwn:
         Gw0.append(g[0].imag)
@@ -299,9 +318,10 @@ for i in range(len(beta_print)):
     beta = beta_print[i]    
     plt.xlabel('U')
     plt.ylabel('n')
-    plt.plot(U_print, n, label=str(beta))
+    plt.plot(U_print, n, label='beta='+str(beta))
     plt.legend()
 plt.savefig("./figures/n.png")
+
 
 # Print d
 plt.figure()
@@ -310,7 +330,7 @@ for i in range(len(beta_print)):
     beta = beta_print[i]    
     plt.xlabel('U')
     plt.ylabel('d')
-    plt.plot(U_print, d, label=str(beta))
+    plt.plot(U_print, d, label='beta='+str(beta))
     plt.legend()
 plt.savefig("./figures/d.png")
 
@@ -323,22 +343,25 @@ for i in range(len(beta_print)):
     plt.ylabel(r'$E_K$')
     plt.xlim(2, 3.5)
     plt.ylim(-0.5, 0)
-    plt.plot(U_print, Ekin, label=str(beta))
+    plt.plot(U_print, Ekin, label='beta='+str(beta))
     plt.legend()
 plt.savefig("./figures/Ekin.png")
 
 # Print quasi-particle weight
+'''
 plt.figure()
 for i in range(len(beta_print)):
     Z = Z_U[i]
     beta = beta_print[i]
     plt.xlabel('U')
     plt.ylabel('Z')
-    plt.plot(U_print, Z, label=str(beta))
+    plt.plot(U_print, Z, label='beta='+str(beta))
     plt.legend()
 plt.savefig("./figures/Z.png")
+'''
 
 # Print phase diagram
+'''
 plt.figure()
 plt.xlabel('U')
 plt.ylabel('T')
@@ -358,3 +381,4 @@ im_edges = [U_list[0], U_max,
             T_list[0], T_list[len(T_list)-1]]
 plt.imshow(phase_diag, interpolation='none', extent=im_edges, aspect='auto')
 plt.savefig("./figures/phase_diag.png")
+'''
