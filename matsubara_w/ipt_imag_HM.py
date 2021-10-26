@@ -165,8 +165,8 @@ for beta in beta_list:
     tau, wn = gf. tau_wn_setup(beta, Nwn) 
     
     # Seed green function
-    G_iwn_up = gf.greenF(wn, 1, 0, 2*t)
-    G_iwn_dn = gf.greenF(wn, -1, 0, 2*t)
+    G_iwn_up = gf.greenF(wn, 1*(1+1.j), 0, 2*t)
+    G_iwn_dn = gf.greenF(wn, -1*(1+1.j), 0, 2*t)
     
     # Index of zero frequency
     w0_idx = int(len(w)/2)
