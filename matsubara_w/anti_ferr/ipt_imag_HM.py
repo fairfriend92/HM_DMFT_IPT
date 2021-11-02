@@ -206,7 +206,7 @@ beta_list = np.arange(5, 100, 10)     # Inverse of temperature
 beta_print = np.arange(5, 100, 10)
 
 U_list = U_print = [0.5, 1, 1.5, 2, 2.5]
-beta_list = beta_print = [1/T for T in np.arange(0.025, 1.5, 0.025)]
+beta_list = beta_print = [1/T for T in np.arange(0.025, 0.175, 0.025)]
 
 # Hysteresis
 hyst = 0    
@@ -446,10 +446,10 @@ for i in range(len(beta_print)):
 plt.savefig("./figures/Z.png")
 '''
 
-def get_phase(i, j, val):
+def get_phase(U, T, val):
     # G for different T, U values
     Gwn = np.flipud(Gwn_U_up) # Increasing temp order
-    if np.abs(Gwn[i][j].imag) < val:
+    if np.abs(Gwn[T][U][0].imag) < val:
         return -1             # Metallic phase
     else:
         return 1              # Insulating phase
@@ -462,11 +462,14 @@ T_list = [1/beta for beta in beta_list]    # Convert from beta to temp
 T_list = np.flipud(T_list)                 # Sort in increasing order
 Ttrans = []                                # Transition temperature
 Ttrans.append(0)                            
-for i in range(1, len(U_print)):
-    for j in range(1, len(T_list)):
-        if get_phase(i, j, 0.1) != get_phase(i, j+1):
+for i in range(len(U_print)):
+    for j in range(len(T_list)-1):
+        if get_phase(i, j, 0.15) != get_phase(i, j+1, 0.15):
             Ttrans.append(T_list[j])
             break
+        elif j == len(T_list)-2:    
+            Ttrans.append(0)
+U_print.insert(0, 0)
 plt.plot(U_print, Ttrans)
         
 '''
