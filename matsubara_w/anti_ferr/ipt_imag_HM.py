@@ -198,28 +198,28 @@ def dmft_loop(u_int, t, g_iwn_up, g_iwn_dn, w_n, tau, mix=1, conv=1e-3):
 # Parameters
 t = 0.5     # Hopping
 Nwn = 256   # Num of freq: 1024 is recommended
+U_max = 5.  # Electron interaction
 
-U_max = 2.
-U_list = np.arange(0.1, U_max, 0.2)   # Interaction strength
-U_print = np.arange(0.1, U_max, 0.2)  # Values when obs should be computed
+# Ranges 
+U_list = np.arange(0.5, U_max, 0.5)   # Range of interaction strength  
+U_print = np.arange(0.5, U_max, 0.5)  # U values for which observables are printed
 beta_list = np.arange(5, 100, 10)     # Inverse of temperature
-beta_print = np.arange(5, 100, 10)
+beta_print = np.arange(5, 100, 10)    # Beta values for which observables are printed   
+dw = 0.01                             # Real freq differential
+w = np.arange(-15, 15, dw)            # Real freq
+de = 2*t/1000                         # Energy differential
+e = np.arange(-2*t, 2*t, de)          # Energy
+dos_e = gf.bethe_dos(t, e)            # Bethe lattice DOS
 
-U_list = U_print = [0.5, 1, 1.5, 2, 2.5]
-beta_list = beta_print = [1/T for T in np.arange(0.025, 0.175, 0.025)]
+#U_list = U_print = np.array([0.5, 1., 1.5, 2., 2.5])
+beta_list = beta_print = np.array([1/T for T in np.arange(0.025, 0.175, 0.025)])
 
 # Hysteresis
-hyst = 0    
+hyst = False    
 if (hyst):
     U_list = np.append(U_list, np.arange(U_max, 0.375, -0.125))
     U_print = np.append(U_print, U_print[::-1])
-
-dw = 0.01                       # Real freq differential
-w = np.arange(-15, 15, dw)      # Real freq
-de = 2*t/1000                   # Energy differential
-e = np.arange(-2*t, 2*t, de)    # Energy
-dos_e = gf.bethe_dos(t, e)      # Bethe lattice DOS
-
+    
 # Observables
 tau_U = []
 dos_U = []
@@ -235,7 +235,7 @@ Gtau_U_dn = []
 
 # Main loop
 for beta in beta_list:
-    print("beta="+f'{beta:.2f}')
+    print("beta="+f'{beta:.3f}')
 
     # Generate Matsubara freq
     tau, wn = gf. tau_wn_setup(beta, Nwn) 
@@ -293,7 +293,7 @@ for beta in beta_list:
             Gtau_beta_up.append(G_tau_up)
             Gtau_beta_dn.append(G_tau_dn)
             
-            print("T="+f'{1/beta:.2f}'+"\tU="+str(U)+"\tG_w0.im="+f'{G_iwn_up[0].imag:.3f}')
+            print("T="+f'{1/beta:.3f}'+"\tU="+f'{U:.3}'+"\tG_w0.im="+f'{G_iwn_up[0].imag:.3f}')
             
             # DOS
             #dos_beta.append(-g_w.imag/np.pi)
@@ -343,8 +343,8 @@ for i in range(len(beta_print)):
         axs[j].set(xlabel=r'$\omega$')
         axs[j].plot(w, dos[j])   
     fig.supylabel(r'$\rho(\omega)$')    
-    plt.title(r'$\beta=$'+str(beta))
-    plt.savefig("./figures/dos_beta="+str(beta)+".png")
+    plt.title(r'$\beta=$'+f'{beta:.3}')
+    plt.savefig("./figures/dos_beta="+f'{beta:.3}'+".png")
     plt.close()
 '''
 
@@ -368,7 +368,7 @@ for i in range(len(beta_print)):
         plt.plot(wn, Gwn_dn[j].imag, label=r'$\sigma=\downarrow$ Im')
         plt.plot(wn, Gwn_dn[j].real, label=r'$\sigma=\downarrow$ Re')
         plt.legend()
-        plt.savefig("./figures/Gwn/Gwn_beta="+str(beta)+"_U="+str(U)+".png")
+        plt.savefig("./figures/Gwn/Gwn_beta="+f'{beta:.3}'+"_U="+f'{U:.3}'+".png")
         plt.close()
         
         # Imaginary time Green function
@@ -380,7 +380,7 @@ for i in range(len(beta_print)):
         plt.plot(tau, Gtau_dn[j].imag, label=r'$\sigma=\downarrow$ Im')
         plt.plot(tau, Gtau_dn[j].real, label=r'$\sigma=\downarrow$ Re')
         plt.legend()
-        plt.savefig("./figures/Gtau/Gtau_beta="+str(beta)+"_U="+str(U)+".png")
+        plt.savefig("./figures/Gtau/Gtau_beta="+f'{beta:.3}'+"_U="+f'{U:.3}'+".png")
         plt.close()
 
 # Print zero-freq Matsubara Green function
@@ -394,7 +394,7 @@ for i in range(len(beta_print)):
     plt.xlabel(r'$U$')
     plt.ylabel(r'$G(\omega_0)$')
     plt.plot(U_print, Gw0)
-    plt.savefig("./figures/Gw0/Gw0_beta="+str(beta)+".png")
+    plt.savefig("./figures/Gw0/Gw0_beta="+f'{beta:.3}'+".png")
     plt.close()
 
 # Print n
@@ -404,7 +404,7 @@ for i in range(len(beta_print)):
     beta = beta_print[i]    
     plt.xlabel('U')
     plt.ylabel('n')
-    plt.plot(U_print, n, label='beta='+str(beta))
+    plt.plot(U_print, n, label='beta='+f'{beta:.3}')
     plt.legend()
 plt.savefig("./figures/n.png")
 
@@ -416,7 +416,7 @@ for i in range(len(beta_print)):
     beta = beta_print[i]    
     plt.xlabel('U')
     plt.ylabel('d')
-    plt.plot(U_print, d, label='beta='+str(beta))
+    plt.plot(U_print, d, label='beta='+f'{beta:.3}')
     plt.legend()
 plt.savefig("./figures/d.png")
 
@@ -429,7 +429,7 @@ for i in range(len(beta_print)):
     plt.ylabel(r'$E_K$')
     plt.xlim(2, 3.5)
     plt.ylim(-0.5, 0)
-    plt.plot(U_print, Ekin, label='beta='+str(beta))
+    plt.plot(U_print, Ekin, label='beta='+f'{beta:.3}')
     plt.legend()
 plt.savefig("./figures/Ekin.png")
 
@@ -441,7 +441,7 @@ for i in range(len(beta_print)):
     beta = beta_print[i]
     plt.xlabel('U')
     plt.ylabel('Z')
-    plt.plot(U_print, Z, label='beta='+str(beta))
+    plt.plot(U_print, Z, label='beta='+f'{beta:.3}')
     plt.legend()
 plt.savefig("./figures/Z.png")
 '''
@@ -455,22 +455,25 @@ def get_phase(U, T, val):
         return 1              # Insulating phase
 
 # Print phase diagram
-plt.figure()
-plt.xlabel('U')
-plt.ylabel('T')
-T_list = [1/beta for beta in beta_list]    # Convert from beta to temp
-T_list = np.flipud(T_list)                 # Sort in increasing order
-Ttrans = []                                # Transition temperature
-Ttrans.append(0)                            
-for i in range(len(U_print)):
-    for j in range(len(T_list)-1):
-        if get_phase(i, j, 0.15) != get_phase(i, j+1, 0.15):
-            Ttrans.append(T_list[j])
-            break
-        elif j == len(T_list)-2:    
-            Ttrans.append(0)
-U_print.insert(0, 0)
-plt.plot(U_print, Ttrans)
+if (len(beta_list) > 1):
+    plt.figure()
+    plt.xlabel('U')
+    plt.ylabel('T')
+    T_list = [1/beta for beta in beta_list]    # Convert from beta to temp
+    T_list = np.flipud(T_list)                 # Sort in increasing order
+    Ttrans = []                                # Transition temperature
+    Ttrans.append(0.)                          # Insert starting temp               
+       
+    for i in range(len(U_print)):
+        for j in range(len(T_list)-1):
+            if get_phase(i, j, 0.15) != get_phase(i, j+1, 0.15):
+                Ttrans.append(T_list[j])
+                break
+            elif j == len(T_list)-2:    
+                Ttrans.append(-1) # Point that should not be plotted
+                
+    U_print = np.insert(U_print, 0, 0)  # Insert starting U
+    plt.plot(U_print, Ttrans)
         
 '''
 phase_U = np.flipud(phase_U)
