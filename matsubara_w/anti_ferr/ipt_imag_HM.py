@@ -106,7 +106,7 @@ def single_band_ipt_solver(u_int, g_0_iwn_up, g_0_iwn_dn, w_n, tau, n_up, n_dn, 
     plt.savefig("./figures/Sigmatau_not_converged/Sigmatau_loop="+str(loop)+".png")
     plt.close()
     
-    # Soumen's implementation    
+    # Soumen's implementation        
     zeta_up = w_n*1.j + mu - u_int*n_dn - sigma_iwn_up
     zeta_dn = w_n*1.j + mu - u_int*n_up - sigma_iwn_dn
     g_e_up = zeta_dn/np.add.outer(-e**2, (zeta_dn*zeta_up))
@@ -114,6 +114,7 @@ def single_band_ipt_solver(u_int, g_0_iwn_up, g_0_iwn_dn, w_n, tau, n_up, n_dn, 
     dos_de = (dos_e * de).reshape(-1, 1)
     g_iwn_up = (dos_de * g_e_up).sum(axis=0)
     g_iwn_dn = (dos_de * g_e_dn).sum(axis=0)
+   
                 
     # Dyson eq.
     #g_iwn_up = g_0_iwn_up / (1.0 - sigma_iwn_up * g_0_iwn_up)
@@ -158,7 +159,7 @@ def dmft_loop(u_int, t, g_iwn_up, g_iwn_dn, w_n, tau, mix=1, conv=1e-3):
     
     while not converged:
         # Initial condition for the magnetization
-        m = 0.2 if loops == 0 else 0.0
+        m = 0.0 if loops == 0 else 0.0
         
         # Backup old G
         g_iwn_up_old = g_iwn_up.copy()
@@ -197,12 +198,12 @@ def dmft_loop(u_int, t, g_iwn_up, g_iwn_dn, w_n, tau, mix=1, conv=1e-3):
 
 # Parameters
 t = 0.5     # Hopping
-Nwn = 256   # Num of freq: 1024 is recommended
-U_max = 5.  # Electron interaction
+Nwn = 256  # Num of freq: 1024 is recommended
+U_max = 4.5 # Electron interaction
 
 # Ranges 
-U_list = np.arange(0.5, U_max, 0.5)   # Range of interaction strength  
-U_print = np.arange(0.5, U_max, 0.5)  # U values for which observables are printed
+U_list = np.arange(2.0, U_max, 0.5)   # Range of interaction strength  
+U_print = np.arange(2.0, U_max, 0.5)  # U values for which observables are printed
 beta_list = np.arange(5, 100, 10)     # Inverse of temperature
 beta_print = np.arange(5, 100, 10)    # Beta values for which observables are printed   
 dw = 0.01                             # Real freq differential
@@ -212,7 +213,7 @@ e = np.arange(-2*t, 2*t, de)          # Energy
 dos_e = gf.bethe_dos(t, e)            # Bethe lattice DOS
 
 #U_list = U_print = np.array([0.5, 1., 1.5, 2., 2.5])
-beta_list = beta_print = np.array([1/T for T in np.arange(0.025, 0.175, 0.025)])
+beta_list = beta_print = [100.] #np.array([1/T for T in np.arange(0.01, 0.16, 0.01)])
 
 # Hysteresis
 hyst = False    
@@ -269,7 +270,8 @@ for beta in beta_list:
     Gtau_beta_dn = []
 
     for U in U_list:
-        G_iwn_up, G_iwn_dn, Sig_iwn_up, Sig_iwn_dn = dmft_loop(U, t, G_iwn_up, G_iwn_dn, wn, tau, mix=1, conv=1e-3)
+        G_iwn_up, G_iwn_dn, Sig_iwn_up, Sig_iwn_dn = \
+            dmft_loop(U, t, G_iwn_up, G_iwn_dn, wn, tau, mix=1, conv=1e-3)
         
         G_iwn = G_iwn_up
         Sig_iwn = Sig_iwn_up
@@ -461,20 +463,27 @@ if (len(beta_list) > 1):
     plt.ylabel('T')
     T_list = [1/beta for beta in beta_list]    # Convert from beta to temp
     T_list = np.flipud(T_list)                 # Sort in increasing order
-    Ttrans = []                                # Transition temperature
-    Ttrans.append(0.)                          # Insert starting temp               
+    T_trans = [0.]                             # Transition temperature
        
     for i in range(len(U_print)):
         for j in range(len(T_list)-1):
             if get_phase(i, j, 0.15) != get_phase(i, j+1, 0.15):
-                Ttrans.append(T_list[j])
+                T_trans.append(T_list[j])
                 break
             elif j == len(T_list)-2:    
-                Ttrans.append(-1) # Point that should not be plotted
+                T_trans.append(-1)   # No transition point
                 
     U_print = np.insert(U_print, 0, 0)  # Insert starting U
-    plt.plot(U_print, Ttrans)
-        
+    
+    # Restrict curve to valid transition points
+    T_arr = np.array(T_trans)
+    U_arr = np.array(U_print) 
+    U_mask = U_arr[T_arr > -1]
+    T_mask = T_arr[T_arr > -1]
+   
+    plt.xlim(left = 0, right = U_max)
+    plt.plot(U_mask, T_mask)
+            
 '''
 phase_U = np.flipud(phase_U)
 phase_diag = []
@@ -489,4 +498,5 @@ im_edges = [U_list[0], U_max,
             T_list[0], T_list[len(T_list)-1]]
 plt.imshow(phase_diag, interpolation='none', extent=im_edges, aspect='auto')
 '''
+
 plt.savefig("./figures/phase_diag.png")
