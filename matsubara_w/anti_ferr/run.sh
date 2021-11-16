@@ -3,7 +3,6 @@ rm figures/*
 rm figures/g_wn/*
 rm figures/g_w0/*
 rm figures/g_tau/*
-rm figures/g_tau_not_converged/*
-rm figures/sig_tau_not_converged/*
+rm figures/not_converged/*
 rm data/*
 python "main.py"

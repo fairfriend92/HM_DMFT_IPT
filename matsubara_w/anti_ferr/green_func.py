@@ -20,6 +20,9 @@ def ift(wn, g_wn, tau, beta):
     return 1/beta * np.dot(exp, g_wn)
 
 def freq_tail_fourier(tail_coef, beta, tau, wn):
+    # The Fourier transforms use as tail expansion of the atomic limit self-enegy
+    # \Sigma(i\omega_n\rightarrow \infty) = \frac{U^2}{4(i\omega_n)} 
+    
     r"""Fourier transforms analytically the slow decaying tail_coefs of
     the Greens functions [matsubara]_
 
