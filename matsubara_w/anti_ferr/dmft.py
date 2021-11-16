@@ -6,7 +6,7 @@ import print_func as print_f
 def print_g_sigma(wn, tau, g_wn_up, g_wn_dn, g_tau_up, g_tau_dn,
                   sigma_tau_up, sigma_tau_dn, loop):
     print_f.generic(wn, g_wn_up, g_wn_dn, 
-                    r'$\tau$', r'$G_0(\tau)$', 
+                    r'$\omega_n$', r'$G_0(\omega_n)$', 
                     "./figures/not_converged/g_0_wn_loop="+str(loop)+".png")  
     
     file = open("./data/g_0_wn_up_loop="+str(loop)+".txt", "w") 
@@ -37,7 +37,7 @@ def ipt_solver_para_mag(beta, u_int, g_0_wn_up, wn, tau, n_up, loop):
     
     # IPT self-energy using G0 of quantum impurity
     sigma_tau_up = u_int**2 * g_0_tau_up**3 
-    sigma_wn_up = green_f.ft(wn, sigma_tau_up, tau, beta)
+    sigma_wn_up = green_f.ft(wn, sigma_tau_up, tau)
     
     # Dyson eq.
     g_wn_up = g_0_wn_up / (1.0 - sigma_wn_up * g_0_wn_up)
@@ -60,8 +60,8 @@ def ipt_solver_anti_ferr(beta, u_int, g_0_wn_up, g_0_wn_dn, wn, tau,
     # IPT self-energy using G0 of quantum impurity
     sigma_tau_up = u_int**2 * g_0_tau_up* g_0_tb_dn * g_0_tau_dn
     sigma_tau_dn = u_int**2 * g_0_tau_dn* g_0_tb_up * g_0_tau_up
-    sigma_wn_up = green_f.ft(wn, sigma_tau_up, tau, beta)
-    sigma_wn_dn = green_f.ft(wn, sigma_tau_dn, tau, beta)
+    sigma_wn_up = green_f.ft(wn, sigma_tau_up, tau)
+    sigma_wn_dn = green_f.ft(wn, sigma_tau_dn, tau)
     
     # Soumen's implementation  
     n_0_up = 2/beta*np.sum(g_0_wn_up) + 0.5

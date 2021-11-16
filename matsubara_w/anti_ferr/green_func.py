@@ -10,7 +10,7 @@ def bethe_gf(wn, sigma, mu, D):
     return 2. / (zeta + sig * sq)
 
 # Fourier transform
-def ft(wn, g_tau, tau, beta):
+def ft(wn, g_tau, tau):
     exp = np.exp(1.j * np.outer(wn, tau))
     return np.dot(exp, g_tau)
 
@@ -40,10 +40,6 @@ def freq_tail_fourier(tail_coef, beta, tau, wn):
     --------
     gw_invfouriertrans
     gt_fouriertrans
-
-    References
-    ----------
-    .. [matsubara] https://en.wikipedia.org/wiki/Matsubara_frequency#Time_Domain
 
     """
 

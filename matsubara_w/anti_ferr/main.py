@@ -10,14 +10,14 @@ from pade import pade_continuation
 # Parameters
 t = 0.5         # Hopping
 D = 2 * t       # Half-bandwidth
-num_freq = 1024 # Num of freq: 1024 is recommended
-hyst = False    # If true loop for decreasing U   
+num_freq = 256  # Num of freq: 1024 is recommended
+hyst = True     # If true loop for decreasing U   
 do_pade = False # If true use Pade's continuation 
 
 # Electron interaction
 U_min = 2.0
 dU = 0.5
-U_max = U_min + dU 
+U_max = 4.5 #U_min + dU 
 U_list = np.arange(U_min, U_max, dU)    
 U_print = np.arange(U_min, U_max, dU)   
 if (hyst):
@@ -54,9 +54,9 @@ g_tau_U_dn = []
 
 for beta in beta_list:
     # Generate Matsubara freq
-    wn = np.pi * (1 + 2 * np.arange(num_freq)) / beta
-    dtau = beta/(2*num_freq)
-    tau = np.arange(0, beta + dtau, dtau)
+    wn = np.pi * (1 + 2 * np.arange(-num_freq, num_freq)) / beta
+    dtau = beta/num_freq
+    tau = np.arange(dtau, beta, dtau)
 
     # Seed green function
     g_wn_up = green_f.bethe_gf(wn, 0.0, 0.0, 2*t) 
@@ -82,7 +82,7 @@ for beta in beta_list:
     for U in U_list:
         g_wn_up, g_wn_dn, sig_wn_up, Sig_iwn_dn = \
             dmft.loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta,
-                      mix=1., conv=1e-3, max_loops=10, m_start=0.)
+                      mix=1., conv=1e-3, max_loops=50, m_start=0.)
         
         g_wn = g_wn_up
         sig_wn = sig_wn_up
