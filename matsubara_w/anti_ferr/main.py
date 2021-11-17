@@ -11,13 +11,13 @@ from pade import pade_continuation
 t = 0.5         # Hopping
 D = 2 * t       # Half-bandwidth
 num_freq = 256  # Num of freq: 1024 is recommended
-hyst = True     # If true loop for decreasing U   
+hyst = False    # If true loop for decreasing U   
 do_pade = False # If true use Pade's continuation 
 
 # Electron interaction
 U_min = 2.0
 dU = 0.5
-U_max = 4.5 #U_min + dU 
+U_max = 2.5 
 U_list = np.arange(U_min, U_max, dU)    
 U_print = np.arange(U_min, U_max, dU)   
 if (hyst):

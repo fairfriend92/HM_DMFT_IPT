@@ -29,7 +29,7 @@ def print_g_sigma(wn, tau, g_wn_up, g_wn_dn, g_tau_up, g_tau_dn,
                     r'$\tau$', r'$\Sigma_0(\tau)$', 
                     "./figures/not_converged/sig_tau_loop="+str(loop)+".png")
 
-def ipt_solver_para_mag(beta, u_int, g_0_wn_up, wn, tau, n_up, loop):
+def ipt_solver_para_mag(beta, u_int, g_0_wn_up, wn, tau, loop):
     mu = u_int / 2
        
     g_0_tau_up = green_f.ift(wn, g_0_wn_up, tau, beta)
@@ -110,8 +110,8 @@ def loop(u_int, t, g_wn_up, g_wn_dn, wn, tau, beta,
         n_dn = 2/beta*np.sum(g_wn_dn_old.real) + 0.5 
        
         # Non-interacting GF of quantum impurity  
-        g_0_wn_up = 1. / (iwn + m - t**2 * g_wn_up_old + mu - u_int*n_dn)
-        g_0_wn_dn = 1. / (iwn - m - t**2 * g_wn_dn_old + mu - u_int*n_up)
+        g_0_wn_up = 1. / (iwn + m - t**2 * g_wn_up_old) #+ mu - u_int*n_dn)
+        g_0_wn_dn = 1. / (iwn - m - t**2 * g_wn_dn_old) #+ mu - u_int*n_up)
         
         # Impurity solver
         if (m_start != 0.):
@@ -123,7 +123,7 @@ def loop(u_int, t, g_wn_up, g_wn_dn, wn, tau, beta,
         else:
             g_wn_up, \
             sigma_wn_up = ipt_solver_para_mag(beta, u_int, g_0_wn_up, wn, 
-                                              tau, n_up, loops)  
+                                              tau, loops)  
             g_wn_dn = g_wn_up
             sigma_wn_dn = sigma_wn_up
                     
