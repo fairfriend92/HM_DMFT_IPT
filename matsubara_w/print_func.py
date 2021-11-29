@@ -5,10 +5,10 @@ def generic(x, y_up, y_dn, x_label, y_label, path):
     plt.figure()
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    plt.plot(x, y_up.imag, label=r'$\sigma=\uparrow$ Im')
-    plt.plot(x, y_up.real, label=r'$\sigma=\uparrow$ Re')
-    plt.plot(x, y_dn.imag, label=r'$\sigma=\downarrow$ Im')
-    plt.plot(x, y_dn.real, label=r'$\sigma=\downarrow$ Re')
+    plt.scatter(x, y_up.imag, s=1, label=r'$\sigma=\uparrow$ Im')
+    plt.scatter(x, y_up.real, s=1, label=r'$\sigma=\uparrow$ Re')
+    plt.scatter(x, y_dn.imag, s=1, label=r'$\sigma=\downarrow$ Im')
+    plt.scatter(x, y_dn.real, s=1, label=r'$\sigma=\downarrow$ Re')
     plt.legend()
     plt.savefig(path)
     plt.close()
@@ -43,32 +43,35 @@ def green_func(beta_print, tau_U, \
         for j in range(len(U_print)):
             U = U_print[j]
             
-            branch = "_up" if  hyst and j < len(U_print)/2 else "_dn"
+            if hyst:
+                branch = "_up" if  j < len(U_print)/2 else "_dn"
+            else:
+                branch = ""
                                
             # Matsubara Green function
             plt.figure()
             plt.xlabel(r'$\omega_n$')
             plt.ylabel(r'$g(\omega_n)$')
-            plt.plot(wn, g_wn_up[j].imag, label=r'$\sigma=\uparrow$ Im')
-            plt.plot(wn, g_wn_up[j].real, label=r'$\sigma=\uparrow$ Re')
-            plt.plot(wn, g_wn_dn[j].imag, label=r'$\sigma=\downarrow$ Im')
-            plt.plot(wn, g_wn_dn[j].real, label=r'$\sigma=\downarrow$ Re')
+            plt.scatter(wn, g_wn_up[j].imag, s=1,  label=r'$\sigma=\uparrow$ Im')
+            plt.scatter(wn, g_wn_up[j].real, s=1,  label=r'$\sigma=\uparrow$ Re')
+            plt.scatter(wn, g_wn_dn[j].imag, s=1,  label=r'$\sigma=\downarrow$ Im')
+            plt.scatter(wn, g_wn_dn[j].real, s=1,  label=r'$\sigma=\downarrow$ Re')
             plt.legend()
             plt.title(r"$\beta$ = "+f'{beta:.3}'+" U = "+f'{U:.3}'+branch)
-            plt.savefig("./figures/g_wn/g_wn_beta="+f'{beta:.3}'+"_U="+f'{U:.3}'+branch+".png")
+            plt.savefig("./figures/g_wn/g_wn_beta="+f'{beta:.3}'+"_U="+f'{U:.3}'+branch+".pdf")
             plt.close()
             
             # Imaginary time Green function
             plt.figure()
             plt.xlabel(r'$\tau$')
             plt.ylabel(r'$g(\tau)$')
-            plt.plot(tau, g_tau_up[j].imag, label=r'$\sigma=\uparrow$ Im')
-            plt.plot(tau, g_tau_up[j].real, label=r'$\sigma=\uparrow$ Re')
-            plt.plot(tau, g_tau_dn[j].imag, label=r'$\sigma=\downarrow$ Im')
-            plt.plot(tau, g_tau_dn[j].real, label=r'$\sigma=\downarrow$ Re')
+            plt.scatter(tau, g_tau_up[j].imag, s=1, label=r'$\sigma=\uparrow$ Im')
+            plt.scatter(tau, g_tau_up[j].real, s=1, label=r'$\sigma=\uparrow$ Re')
+            plt.scatter(tau, g_tau_dn[j].imag, s=1, label=r'$\sigma=\downarrow$ Im')
+            plt.scatter(tau, g_tau_dn[j].real, s=1, label=r'$\sigma=\downarrow$ Re')
             plt.legend()
             plt.title(r"$\beta$ = "+f'{beta:.3}'+" U = "+f'{U:.3}'+branch)
-            plt.savefig("./figures/g_tau/g_tau_beta="+f'{beta:.3}'+"_U="+f'{U:.3}'+branch+".png")
+            plt.savefig("./figures/g_tau/g_tau_beta="+f'{beta:.3}'+"_U="+f'{U:.3}'+branch+".pdf")
             plt.close()
 
 # Print zero-freq Matsubara Green function

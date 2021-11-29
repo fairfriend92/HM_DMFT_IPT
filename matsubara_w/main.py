@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pylab as plt
 import dmft
-import green_func as green_f
+from green_func import ft as ft     
+from green_func import my_ifft as ift   
 import print_func as print_f
 from pade import pade_continuation
 
@@ -10,7 +11,6 @@ from pade import pade_continuation
 # Parameters
 t = 0.5         # Hopping
 D = 2 * t       # Half-bandwidth
-num_freq = 1024 # Num of freq: 1024 is recommended
 hyst = False    # If true loop for decreasing U   
 do_pade = False # If true use Pade's continuation 
 
@@ -52,18 +52,23 @@ g_tau_U_dn = []
 
 ''' Main loop '''
 
-for beta in beta_list:
-    # Generate Matsubara freq
-    wn = np.pi * (1 + 2 * np.arange(-num_freq, num_freq)) / beta
-    dtau = beta/num_freq
-    tau = np.arange(dtau, beta, dtau)
+for beta in beta_list:  
+    # Generate Matsubara freq 
+    a = 8           # Must be int >= 1
+    N = a*int(beta) # Number of frequences
+    wn = np.pi * (1 + 2 * np.arange(-N, N, dtype=np.longdouble)) / beta
 
+    # Generate imaginary time 
+    dtau = 1./a
+    tau = np.arange(dtau/2, beta, dtau, dtype=np.longdouble)
+            
     # Seed green function
-    g_wn_up = green_f.bethe_gf(wn, 0.0, 0.0, 2*t) 
+    g_wn_up = 1/(1.j*wn + 1.j*D*np.sign(wn)) 
+              #-2.j / (wn + np.sign(wn) * np.sqrt(wn**2 + D**2)) 
     g_wn_dn = g_wn_up    
     print_f.generic(wn, g_wn_up, g_wn_dn, 
                     r'$\omega_n$', r'$g(\omega_n)$', 
-                    "./figures/g_seed.png")
+                    "./figures/g_seed.pdf")
     
     # Index of zero frequency
     w0_idx = int(len(w)/2)
@@ -81,15 +86,15 @@ for beta in beta_list:
 
     for U in U_list:
         g_wn_up, g_wn_dn, sig_wn_up, Sig_iwn_dn = \
-            dmft.loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta,
+            dmft.loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta, 
                       mix=1., conv=1e-3, max_loops=50, m_start=0.)
         
         g_wn = g_wn_up
         sig_wn = sig_wn_up
         
         # Imaginary time Green function
-        g_tau_up = green_f.ift(wn, g_wn_up, tau, beta)
-        g_tau_dn = green_f.ift(wn, g_wn_dn, tau, beta)
+        g_tau_up = ift(wn, g_wn_up, tau, beta)
+        g_tau_dn = ift(wn, g_wn_dn, tau, beta)
         
         # Analytic continuation using Pade
         if do_pade:
@@ -120,7 +125,7 @@ for beta in beta_list:
             # Kinetic energy
             e_kin = 0
             # Sum over Matsubara freq
-            for n in range(num_freq):
+            for n in range(N):
                 # Integral in epsilon
                 mu = 0.0
                 g_k_wn = 1/(1.j*wn[n] + mu - e - sig_wn[n])

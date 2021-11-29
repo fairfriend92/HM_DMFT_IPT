@@ -1,13 +1,14 @@
 import numpy as np
 import matplotlib.pylab as plt
-import green_func as green_f
+from green_func import ft as ft    
+from green_func import ift as ift   
 import print_func as print_f
 
 def print_g_sigma(wn, tau, g_wn_up, g_wn_dn, g_tau_up, g_tau_dn,
                   sigma_tau_up, sigma_tau_dn, loop):
     print_f.generic(wn, g_wn_up, g_wn_dn, 
                     r'$\omega_n$', r'$G_0(\omega_n)$', 
-                    "./figures/not_converged/g_0_wn_loop="+str(loop)+".png")  
+                    "./figures/not_converged/g_0_wn_loop="+str(loop)+".pdf")  
     
     file = open("./data/g_0_wn_up_loop="+str(loop)+".txt", "w") 
     file.write("wn\tg_0_wn_up\n")
@@ -17,7 +18,7 @@ def print_g_sigma(wn, tau, g_wn_up, g_wn_dn, g_tau_up, g_tau_dn,
                     
     print_f.generic(tau, g_tau_up, g_tau_dn, 
                     r'$\tau$', r'$G_0(\tau)$', 
-                    "./figures/not_converged/g_tau_loop="+str(loop)+".png") 
+                    "./figures/not_converged/g_tau_loop="+str(loop)+".pdf") 
                     
     file = open("./data/g_0_tau_up_loop="+str(loop)+".txt", "w") 
     file.write("tau\tg_0_tau_up\n")
@@ -27,14 +28,14 @@ def print_g_sigma(wn, tau, g_wn_up, g_wn_dn, g_tau_up, g_tau_dn,
     
     print_f.generic(tau, sigma_tau_up, sigma_tau_dn, 
                     r'$\tau$', r'$\Sigma_0(\tau)$', 
-                    "./figures/not_converged/sig_tau_loop="+str(loop)+".png")
+                    "./figures/not_converged/sig_tau_loop="+str(loop)+".pdf")
 
 def ipt_solver_para_mag(beta, U, g_0_wn, wn, tau, loop):     
-    g_0_tau = green_f.ift(wn, g_0_wn, tau, beta)
+    g_0_tau = ift(wn, g_0_wn, tau, beta)
     
     # IPT self-energy using G0 of quantum impurity
     sigma_tau = U**2 * g_0_tau**3 
-    sigma_wn = green_f.ft(wn, sigma_tau, tau)
+    sigma_wn = ft(wn, sigma_tau, tau, beta)
     
     # Dyson eq.
     g_wn = g_0_wn / (1.0 - sigma_wn * g_0_wn)
@@ -49,16 +50,16 @@ def ipt_solver_anti_ferr(beta, U, g_0_wn_up, g_0_wn_dn, wn, tau,
                          n_up, n_dn, loop):    
     mu = U / 2
        
-    g_0_tau_up = green_f.ift(wn, g_0_wn_up, tau, beta)
+    g_0_tau_up = ift(wn, g_0_wn_up, tau, beta)
     g_0_tb_up = np.array([g_0_tau_up[len(tau)-1-t] for t in range(len(tau))])
-    g_0_tau_dn = green_f.ift(wn, g_0_wn_dn, tau, beta)
+    g_0_tau_dn = ift(wn, g_0_wn_dn, tau, beta)
     g_0_tb_dn = np.array([g_0_tau_dn[len(tau)-1-t] for t in range(len(tau))])   
     
     # IPT self-energy using G0 of quantum impurity
     sigma_tau_up = U**2 * g_0_tau_up* g_0_tb_dn * g_0_tau_dn
     sigma_tau_dn = U**2 * g_0_tau_dn* g_0_tb_up * g_0_tau_up
-    sigma_wn_up = green_f.ft(wn, sigma_tau_up, tau)
-    sigma_wn_dn = green_f.ft(wn, sigma_tau_dn, tau)
+    sigma_wn_up = ft(wn, sigma_tau_up, tau)
+    sigma_wn_dn = ft(wn, sigma_tau_dn, tau)
     
     # Soumen's implementation  
     n_0_up = 2/beta*np.sum(g_0_wn_up) + 0.5
@@ -84,8 +85,8 @@ def ipt_solver_anti_ferr(beta, U, g_0_wn_up, g_0_wn_dn, wn, tau,
 
     return g_wn_up, g_wn_dn, sigma_wn_up, sigma_wn_dn
     
-def loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta,
-         mix=1, conv=1e-3, max_loops=500, m_start=0):
+def loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta, 
+         mix=1, conv=1e-3, max_loops=500, m_start=0.):
     converged = False
     loops = 0
     mu = U/2
@@ -122,7 +123,7 @@ def loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta,
                                               tau, loops)  
             g_wn_dn = g_wn_up
             sigma_wn_dn = sigma_wn_up
-                    
+       
         # Check convergence
         converged = np.allclose(g_wn_up_old, g_wn_up, conv) and np.allclose(g_wn_dn_old, g_wn_dn, conv)
         loops += 1
