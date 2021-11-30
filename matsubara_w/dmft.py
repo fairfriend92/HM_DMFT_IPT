@@ -4,34 +4,51 @@ from green_func import ft as ft
 from green_func import ift as ift   
 import print_func as print_f
 
-def print_g_sigma(wn, tau, g_wn_up, g_wn_dn, g_tau_up, g_tau_dn,
-                  sigma_tau_up, sigma_tau_dn, loop):
-    print_f.generic(wn, g_wn_up, g_wn_dn, 
+def save_g_sigma(wn, tau, g_0_wn_up, g_0_wn_dn, g_0_tau_up, g_0_tau_dn,
+                 sigma_wn_up, sigma_wn_dn, 
+                 sigma_tau_up, sigma_tau_dn, 
+                 g_wn_up, g_wn_dn, loop):
+    # Print g_0_wn
+    print_f.generic(wn, g_0_wn_up, g_0_wn_dn, 
                     r'$\omega_n$', r'$G_0(\omega_n)$', 
                     "./figures/not_converged/g_0_wn_loop="+str(loop)+".pdf")  
     
+    # Write g_0_wn
     file = open("./data/g_0_wn_up_loop="+str(loop)+".txt", "w") 
     file.write("wn\tg_0_wn_up\n")
     for w, g, in zip(wn, g_wn_up):
         file.write(str(w) + "\t" + str(g) + "\n")
     file.close()
                     
-    print_f.generic(tau, g_tau_up, g_tau_dn, 
+    # Print g_0_tau                
+    print_f.generic(tau, g_0_tau_up, g_0_tau_dn, 
                     r'$\tau$', r'$G_0(\tau)$', 
-                    "./figures/not_converged/g_tau_loop="+str(loop)+".pdf") 
-                    
+                    "./figures/not_converged/g_0_tau_loop="+str(loop)+".pdf") 
+    
+    # Write g_0_tau      
     file = open("./data/g_0_tau_up_loop="+str(loop)+".txt", "w") 
     file.write("tau\tg_0_tau_up\n")
-    for t, g, in zip(tau, g_tau_up):
+    for t, g, in zip(tau, g_0_tau_up):
         file.write(str(t) + "\t" + str(g) + "\n")
     file.close()
     
+    # Print sigma_wn 
+    print_f.generic(wn, sigma_wn_up, sigma_wn_dn, 
+                    r'$\omega_n$', r'$\Sigma(\omega_n)$', 
+                    "./figures/not_converged/sig_wn_loop="+str(loop)+".pdf")
+    
+    # Print sigma_tau
     print_f.generic(tau, sigma_tau_up, sigma_tau_dn, 
-                    r'$\tau$', r'$\Sigma_0(\tau)$', 
+                    r'$\tau$', r'$\Sigma(\tau)$', 
                     "./figures/not_converged/sig_tau_loop="+str(loop)+".pdf")
+    
+    # Print g_wn
+    print_f.generic(wn, g_wn_up, g_wn_dn, 
+                    r'$\omega_n$', r'$G(\omega_n)$', 
+                    "./figures/not_converged/g_wn_loop="+str(loop)+".pdf")
 
 def ipt_solver_para_mag(beta, U, g_0_wn, wn, tau, loop):     
-    g_0_tau = ift(wn, g_0_wn, tau, beta)
+    g_0_tau = ift(wn, g_0_wn, tau, beta, a=1.)
     
     # IPT self-energy using G0 of quantum impurity
     sigma_tau = U**2 * g_0_tau**3 
@@ -41,8 +58,11 @@ def ipt_solver_para_mag(beta, U, g_0_wn, wn, tau, loop):
     g_wn = g_0_wn / (1.0 - sigma_wn * g_0_wn)
     
     # Print G and self-energy
-    print_g_sigma(wn, tau, g_0_wn, g_0_wn, g_0_tau, g_0_tau,
-                  sigma_tau, sigma_tau, loop)
+    save_g_sigma(wn, tau, 
+                 g_0_wn, g_0_wn, g_0_tau, g_0_tau,
+                 sigma_wn, sigma_wn,
+                 sigma_tau, sigma_tau, 
+                 g_wn, g_wn, loop)
 
     return g_wn, sigma_wn
 
@@ -50,9 +70,9 @@ def ipt_solver_anti_ferr(beta, U, g_0_wn_up, g_0_wn_dn, wn, tau,
                          n_up, n_dn, loop):    
     mu = U / 2
        
-    g_0_tau_up = ift(wn, g_0_wn_up, tau, beta)
+    g_0_tau_up = ift(wn, g_0_wn_up, tau, beta, a=1.)
     g_0_tb_up = np.array([g_0_tau_up[len(tau)-1-t] for t in range(len(tau))])
-    g_0_tau_dn = ift(wn, g_0_wn_dn, tau, beta)
+    g_0_tau_dn = ift(wn, g_0_wn_dn, tau, beta, a=1.)
     g_0_tb_dn = np.array([g_0_tau_dn[len(tau)-1-t] for t in range(len(tau))])   
     
     # IPT self-energy using G0 of quantum impurity
@@ -80,13 +100,16 @@ def ipt_solver_anti_ferr(beta, U, g_0_wn_up, g_0_wn_dn, wn, tau,
     g_wn_dn = (dos_de * g_e_dn).sum(axis=0)
   
     # Print G and self-energy
-    print_g_sigma(wn, tau, g_0_wn_up, g_0_wn_dn, g_0_tau_up, g_0_tau_dn,
-                  sigma_tau_up, sigma_tau_dn, loop)
+    save_g_sigma(wn, tau, 
+                 g_0_wn_up, g_0_wn_dn, g_0_tau_up, g_0_tau_dn,
+                 sigma_wn_up, sigma_wn_dn, 
+                 sigma_tau_up, sigma_tau_dn, 
+                 g_wn_up, g_wn_dn, loop)
 
     return g_wn_up, g_wn_dn, sigma_wn_up, sigma_wn_dn
     
 def loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta, 
-         mix=1, conv=1e-3, max_loops=500, m_start=0.):
+         mix=1, conv=1e-3, max_loops=50, m_start=0.):
     converged = False
     loops = 0
     mu = U/2
@@ -107,8 +130,8 @@ def loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta,
         n_dn = 2/beta*np.sum(g_wn_dn_old.real) + 0.5 
        
         # Non-interacting GF of quantum impurity  
-        g_0_wn_up = 1. / (1.j*wn + m - t**2 * g_wn_up_old) #+ mu - U*n_dn)
-        g_0_wn_dn = 1. / (1.j*wn - m - t**2 * g_wn_dn_old) #+ mu - U*n_up)
+        g_0_wn_up = 1. / (1.j*wn + m - t**2 * g_wn_up_old + mu - U*n_dn)
+        g_0_wn_dn = 1. / (1.j*wn - m - t**2 * g_wn_dn_old + mu - U*n_up)
         
         # Impurity solver
         if (m_start != 0.):

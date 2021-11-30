@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pylab as plt
 import dmft
 from green_func import ft as ft     
-from green_func import my_ifft as ift   
+from green_func import ift as ift   
 import print_func as print_f
 from pade import pade_continuation
 
@@ -11,6 +11,7 @@ from pade import pade_continuation
 # Parameters
 t = 0.5         # Hopping
 D = 2 * t       # Half-bandwidth
+N = 1024        # Number of Matsubara frequencies
 hyst = False    # If true loop for decreasing U   
 do_pade = False # If true use Pade's continuation 
 
@@ -54,12 +55,11 @@ g_tau_U_dn = []
 
 for beta in beta_list:  
     # Generate Matsubara freq 
-    a = 8           # Must be int >= 1
-    N = a*int(beta) # Number of frequences
     wn = np.pi * (1 + 2 * np.arange(-N, N, dtype=np.longdouble)) / beta
 
     # Generate imaginary time 
-    dtau = 1./a
+    dtau = beta/(2*N)   # tau has to be twice as dense as wn...
+                        # ...when considering negative freq
     tau = np.arange(dtau/2, beta, dtau, dtype=np.longdouble)
             
     # Seed green function
@@ -93,8 +93,8 @@ for beta in beta_list:
         sig_wn = sig_wn_up
         
         # Imaginary time Green function
-        g_tau_up = ift(wn, g_wn_up, tau, beta)
-        g_tau_dn = ift(wn, g_wn_dn, tau, beta)
+        g_tau_up = ift(wn, g_wn_up, tau, beta, a=1.)
+        g_tau_dn = ift(wn, g_wn_dn, tau, beta, a=1.)
         
         # Analytic continuation using Pade
         if do_pade:
