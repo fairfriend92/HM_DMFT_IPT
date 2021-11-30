@@ -12,13 +12,13 @@ from pade import pade_continuation
 t = 0.5         # Hopping
 D = 2 * t       # Half-bandwidth
 N = 1024        # Number of Matsubara frequencies
-hyst = False    # If true loop for decreasing U   
-do_pade = False # If true use Pade's continuation 
+hyst = True     # If true loop for decreasing U   
+do_pade = True  # If true use Pade's continuation 
 
 # Electron interaction
 U_min = 2.0
 dU = 0.5
-U_max = 2.5
+U_max = 4.5
 U_list = np.arange(U_min, U_max, dU)    
 U_print = U_list   
 if (hyst):
@@ -26,7 +26,7 @@ if (hyst):
     U_print = np.append(U_print, U_print[::-1])
 
 # Inverse of temperature 
-beta_list = [128.]        
+beta_list = [48.]        
 beta_print = beta_list     
 
 # Real frequency
@@ -87,7 +87,7 @@ for beta in beta_list:
     for U in U_list:
         g_wn_up, g_wn_dn, sig_wn_up, Sig_iwn_dn = \
             dmft.loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta, 
-                      mix=1., conv=1e-3, max_loops=50, m_start=0.)
+                      mix=0.9, conv=1e-3, max_loops=50, m_start=0.)
         
         g_wn = g_wn_up
         sig_wn = sig_wn_up

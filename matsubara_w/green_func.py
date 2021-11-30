@@ -4,7 +4,7 @@ from numpy.fft import fft, ifft
 # Discrete Fourier transform
 def ft(wn, g_tau, tau, beta):
     exp = np.exp(1.j * np.outer(wn, tau))   
-    return np.dot(exp, g_tau)         
+    return np.dot(exp, g_tau) / np.sqrt(len(tau))      
     
 # Inverse discrete Fourier transform
 def ift(wn, g_wn, tau, beta, a=0.):

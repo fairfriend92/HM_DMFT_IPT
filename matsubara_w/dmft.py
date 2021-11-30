@@ -130,8 +130,8 @@ def loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta,
         n_dn = 2/beta*np.sum(g_wn_dn_old.real) + 0.5 
        
         # Non-interacting GF of quantum impurity  
-        g_0_wn_up = 1. / (1.j*wn + m - t**2 * g_wn_up_old + mu - U*n_dn)
-        g_0_wn_dn = 1. / (1.j*wn - m - t**2 * g_wn_dn_old + mu - U*n_up)
+        g_0_wn_up = 1. / (1.j*wn + m - t**2 * g_wn_up_old) #+ mu - U*n_dn)
+        g_0_wn_dn = 1. / (1.j*wn - m - t**2 * g_wn_dn_old) #+ mu - U*n_up)
         
         # Impurity solver
         if (m_start != 0.):
