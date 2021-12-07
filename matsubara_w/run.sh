@@ -1,8 +1,5 @@
 #!/bin/bash
-rm figures/*
-rm figures/g_wn/*
-rm figures/g_w0/*
-rm figures/g_tau/*
-rm figures/not_converged/*
-rm data/*
+find . -name "*.pdf" -type f -delete
+find . -name "*.png" -type f -delete
+find . -name "*.txt" -type f -delete
 python "main.py"

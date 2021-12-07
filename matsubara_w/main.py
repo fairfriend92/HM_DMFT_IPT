@@ -1,44 +1,13 @@
 import numpy as np
 import matplotlib.pylab as plt
 import dmft
-from green_func import ft as ft     
-from green_func import ift as ift   
+from constants import *
+from green_func import ift   
 import print_func as print_f
 from pade import pade_continuation
 
-''' Variables '''
+''' Main loop '''
 
-# Parameters
-t = 0.5         # Hopping
-D = 2 * t       # Half-bandwidth
-N = 1024        # Number of Matsubara frequencies
-hyst = True     # If true loop for decreasing U   
-do_pade = True  # If true use Pade's continuation 
-
-# Electron interaction
-U_min = 2.0
-dU = 0.5
-U_max = 4.5
-U_list = np.arange(U_min, U_max, dU)    
-U_print = U_list   
-if (hyst):
-    U_list = np.append(U_list, np.arange(U_max-dU, U_min-dU, -dU))
-    U_print = np.append(U_print, U_print[::-1])
-
-# Inverse of temperature 
-beta_list = [48.]        
-beta_print = beta_list     
-
-# Real frequency
-dw = 0.01                             
-w = np.arange(-15, 15, dw)           
-
-# Energy
-de = 2*t/256                         
-e = np.arange(-2*t, 2*t, de)         
-dos_e = 2*np.sqrt(D**2 - e**2) / (np.pi * D**2) # Bethe lattice DOS
- 
-# Observables
 tau_U = []
 dos_U = []
 n_U = []
@@ -51,20 +20,19 @@ g_wn_U_dn = []
 g_tau_U_up = []
 g_tau_U_dn = []
 
-''' Main loop '''
-
 for beta in beta_list:  
     # Generate Matsubara freq 
-    wn = np.pi * (1 + 2 * np.arange(-N, N, dtype=np.longdouble)) / beta
+    wn = np.pi * (1 + 2 * np.arange(-N, N, dtype=np.double)) / beta
 
     # Generate imaginary time 
     dtau = beta/(2*N)   # tau has to be twice as dense as wn...
                         # ...when considering negative freq
-    tau = np.arange(dtau/2, beta, dtau, dtype=np.longdouble)
-            
+    tau = np.arange(dtau/2., beta, dtau, dtype=np.double)
+     
     # Seed green function
-    g_wn_up = 1/(1.j*wn + 1.j*D*np.sign(wn)) 
-              #-2.j / (wn + np.sign(wn) * np.sqrt(wn**2 + D**2)) 
+    g_wn_up = -2.j / (wn + np.sign(wn) * np.sqrt(wn**2 + D**2))
+               #1/(1.j*wn + 1.j*D*np.sign(wn)) 
+               
     g_wn_dn = g_wn_up    
     print_f.generic(wn, g_wn_up, g_wn_dn, 
                     r'$\omega_n$', r'$g(\omega_n)$', 
@@ -85,30 +53,30 @@ for beta in beta_list:
     g_tau_beta_dn = []
 
     for U in U_list:
-        g_wn_up, g_wn_dn, sig_wn_up, Sig_iwn_dn = \
+        g_wn_up, g_wn_dn, sig_wn_up, sig_wn_dn = \
             dmft.loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta, 
-                      mix=0.9, conv=1e-3, max_loops=50, m_start=0.)
+                      mix=1., conv=1e-3, max_loops=50, m_start=0.)
         
         g_wn = g_wn_up
         sig_wn = sig_wn_up
         
         # Imaginary time Green function
-        g_tau_up = ift(wn, g_wn_up, tau, beta, a=1.)
-        g_tau_dn = ift(wn, g_wn_dn, tau, beta, a=1.)
+        g_tau_up = ift(wn, g_wn_up, tau, beta)
+        g_tau_dn = ift(wn, g_wn_dn, tau, beta)
         
         # Analytic continuation using Pade
         if do_pade:
             g_w = pade_continuation(g_wn, wn, w, w_set=None)
             sig_w = pade_continuation(sig_wn, wn, w, w_set=None)
                 
-        if U in U_print and beta in beta_print:
+        if U in U_print and beta in beta_print:           
             # Save Green functions
             g_wn_beta_up.append(g_wn_up)
             g_wn_beta_dn.append(g_wn_dn)
             g_tau_beta_up.append(g_tau_up)
             g_tau_beta_dn.append(g_tau_dn)
             
-            print("T="+f'{1/beta:.3f}'+"\tU="+f'{U:.3}'+"\tg_w0.im="+f'{g_wn_up[0].imag:.3f}')
+            print("T="+f'{1/beta:.3f}'+"\tU="+f'{U:.3}')
                         
             # DOS
             if do_pade:
@@ -116,6 +84,7 @@ for beta in beta_list:
             
             # Electron concentration for temp 1/beta and energy w
             n = np.sum(g_wn.real) + 0.5
+            #print("n="+f'{n:.5f}')
             n_beta.append(n)
             
             # Double occupancy
@@ -123,13 +92,14 @@ for beta in beta_list:
             d_beta.append(d.real)
             
             # Kinetic energy
-            e_kin = 0
+            e_kin = 0.
             # Sum over Matsubara freq
-            for n in range(N):
+            for w_n, sig_n in zip(wn[N:], sig_wn[N:]):
                 # Integral in epsilon
-                mu = 0.0
-                g_k_wn = 1/(1.j*wn[n] + mu - e - sig_wn[n])
-                e_kin += 2/beta * np.sum(de * e * dos_e * g_k_wn)
+                mu = 0.
+                g_k_wn = 1./(1.j*w_n + mu - e - sig_n)
+                e_kin += 2./beta * np.sum(de*e*dos_e*g_k_wn)
+            #print("E_kin.real="+f'{e_kin.real:.5f}')
             e_kin_beta.append(e_kin.real)
             
             # Quasi-particle weight
@@ -151,16 +121,17 @@ for beta in beta_list:
         g_tau_U_dn.append(g_tau_beta_dn)
         
 ''' Printing functions '''      
-
+'''
 print_f.green_func(beta_print, tau_U, \
                     g_wn_U_up, g_wn_U_dn, g_tau_U_up, g_tau_U_dn, \
                     U_print, hyst, wn)
 print_f.gf_iw0(beta_print, g_wn_U_up, U_print)
 print_f.n(beta_print, n_U, U_print)
 print_f.d(beta_print, d_U, U_print)
+'''
 print_f.e_kin(beta_print, ekin_U, U_print)
 print_f.phase(beta_list, U_print, g_wn_U_up)
 
 if do_pade:
-    print_f.dos(beta_print, dos_U, U_print, hyst)
+    print_f.dos(beta_print, w, dos_U, U_print, hyst)
     print_f.Z(beta_print, Z_U, U_print)

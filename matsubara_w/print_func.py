@@ -1,4 +1,6 @@
 import matplotlib.pylab as plt
+import numpy as np
+from constants import *
 
 # Print any 2 complex functions  
 def generic(x, y_up, y_dn, x_label, y_label, path):
@@ -12,9 +14,73 @@ def generic(x, y_up, y_dn, x_label, y_label, path):
     plt.legend()
     plt.savefig(path)
     plt.close()
+    
+def not_converged(wn, tau, g_0_wn_up, g_0_wn_dn, g_0_tau_up, g_0_tau_dn,
+                 sigma_wn_up, sigma_wn_dn, 
+                 sigma_tau_up, sigma_tau_dn, 
+                 g_wn_up, g_wn_dn, loop, U):
+    # Print g_0_wn
+    generic(wn, g_0_wn_up, g_0_wn_dn, 
+            r'$\omega_n$', r'$G_0(\omega_n)$', 
+            "./figures/not_converged/g_0_wn_U="+f'{U:.3}'+"_loop="+str(loop)+".pdf")  
+    
+    # Write g_0_wn
+    file = open("./data/not_converged/g_0_wn_U="+f'{U:.3}'+"_loop="+str(loop)+".txt", "w") 
+    file.write("wn\tg_0_wn_up\tg_0_wn_dn\n")
+    for w, g_up, g_dn in zip(wn, g_0_wn_up, g_0_wn_dn):
+        file.write(str(w) + "\t" + str(g_up) + "\t" + str(g_dn) + "\n")
+    file.close()
+                    
+    # Print g_0_tau                
+    generic(tau, g_0_tau_up, g_0_tau_dn, 
+            r'$\tau$', r'$G_0(\tau)$', 
+            "./figures/not_converged/g_0_tau_U="+f'{U:.3}'+"_loop="+str(loop)+".pdf") 
+    
+    # Write g_0_tau     
+    file = open("./data/not_converged/g_0_tau_U="+f'{U:.3}'+"_loop="+str(loop)+".txt", "w") 
+    file.write("tau\tg_0_tau_up\tg_0_tau_up\n")
+    for t, g_up, g_dn in zip(tau, g_0_tau_up, g_0_tau_dn):
+        file.write(str(t) + "\t" + str(g_up) + "\t" + str(g_dn) + "\n")
+    file.close()
+    
+    # Print sigma_wn 
+    generic(wn, sigma_wn_up, sigma_wn_dn, 
+            r'$\omega_n$', r'$\Sigma(\omega_n)$', 
+            "./figures/not_converged/sig_wn_U="+f'{U:.3}'+"_loop="+str(loop)+".pdf")
+            
+    # Write sigma_wn
+    file = open("./data/not_converged/sig_wn_U="+f'{U:.3}'+"_loop="+str(loop)+".txt", "w") 
+    file.write("wn\tsig_0_wn_up\tsig_0_wn_dn\n")
+    for w, sig_up, sig_dn in zip(wn, sigma_wn_up, sigma_wn_dn):
+        file.write(str(w) + "\t" + str(sig_up) + "\t" + str(sig_dn) + "\n")
+    file.close()
+    
+    # Print sigma_tau
+    generic(tau, sigma_tau_up, sigma_tau_dn, 
+            r'$\tau$', r'$\Sigma(\tau)$', 
+            "./figures/not_converged/sig_tau_U="+f'{U:.3}'+"_loop="+str(loop)+".pdf")
+            
+    # Write sigma_tau
+    file = open("./data/not_converged/sig_tau_U="+f'{U:.3}'+"_loop="+str(loop)+".txt", "w") 
+    file.write("wn\tsig_0_tau_up\tsig_0_tau_dn\n")
+    for w, sig_up, sig_dn in zip(wn, sigma_tau_up, sigma_tau_dn):
+        file.write(str(w) + "\t" + str(sig_up) + "\t" + str(sig_dn) + "\n")
+    file.close()
+    
+    # Print g_wn
+    generic(wn, g_wn_up, g_wn_dn, 
+            r'$\omega_n$', r'$G(\omega_n)$', 
+            "./figures/not_converged/g_wn_U="+f'{U:.3}'+"_loop="+str(loop)+".pdf")
+            
+    # Write g_wn
+    file = open("./data/not_converged/g_wn_U="+f'{U:.3}'+"_loop="+str(loop)+".txt", "w") 
+    file.write("wn\tg_wn_up\tg_wn_dn\n")
+    for w, g_up, g_dn in zip(wn, g_wn_up, g_wn_dn):
+        file.write(str(w) + "\t" + str(g_up) + "\t" + str(g_dn) + "\n")
+    file.close()
 
 # Print density of states
-def dos(beta_print, dos_U, U_print, hyst):
+def dos(beta_print, w, dos_U, U_print, hyst):
     for i in range(len(beta_print)):
         dos = dos_U[i]
         beta = beta_print[i]
@@ -32,8 +98,8 @@ def dos(beta_print, dos_U, U_print, hyst):
 def green_func(beta_print, tau_U, \
                g_wn_U_up, g_wn_U_dn, g_tau_U_up, g_tau_U_dn, 
                U_print, hyst, wn):
+    print("Printing Green functions")
     for i in range(len(beta_print)):
-        print("Printing Green functions")
         beta = beta_print[i]
         tau = tau_U[i]
         g_wn_up = g_wn_U_up[i]
@@ -61,6 +127,12 @@ def green_func(beta_print, tau_U, \
             plt.savefig("./figures/g_wn/g_wn_beta="+f'{beta:.3}'+"_U="+f'{U:.3}'+branch+".pdf")
             plt.close()
             
+            file = open("./data/g_wn_beta="+f'{beta:.3}'+"_U="+f'{U:.3}'+".txt", "w") 
+            file.write("wn\tg_wn_up\tg_wn_dn\n")
+            for w, g_up, g_dn in zip(wn, g_wn_up[j], g_wn_dn[j]):
+                file.write(str(w) + "\t" + str(g_up) + "\t" + str(g_dn) + "\n")
+            file.close()
+            
             # Imaginary time Green function
             plt.figure()
             plt.xlabel(r'$\tau$')
@@ -76,13 +148,13 @@ def green_func(beta_print, tau_U, \
 
 # Print zero-freq Matsubara Green function
 def gf_iw0(beta_print, g_wn_U_up, U_print):
-    for i in range(len(beta_print)):
-        print("Printing zero freqeuncy Matsubara g")
+    print("Printing zero freqeuncy Matsubara g")
+    for i in range(len(beta_print)):        
         beta = beta_print[i]
         g_wn = g_wn_U_up[i]
         Gw0 = []
         for g in g_wn:
-            Gw0.append(g[0].imag)        
+            Gw0.append(g[np.int(N/2)].imag)        
         plt.figure()
         plt.xlabel(r'$U$')
         plt.ylabel(r'$g(\omega_0)$')
@@ -93,21 +165,22 @@ def gf_iw0(beta_print, g_wn_U_up, U_print):
 # Print electron occupation
 def n(beta_print, n_U, U_print):
     plt.figure()
-    for i in range(len(beta_print)):
-        print("Printing e concentration")
+    print("Printing e concentration")
+    for i in range(len(beta_print)):        
         n = n_U[i]
         beta = beta_print[i]    
         plt.xlabel('U')
         plt.ylabel('n')
         plt.plot(U_print, n, label='beta='+f'{beta:.3}')
+        plt.ylim(0.0, 1.0)
         plt.legend()
     plt.savefig("./figures/n.png")
 
 # Print double occupancy
 def d(beta_print, d_U, U_print):
     plt.figure()
-    for i in range(len(beta_print)):
-        print("Printing double occupancy")
+    print("Printing double occupancy")
+    for i in range(len(beta_print)):        
         d = d_U[i]
         beta = beta_print[i]    
         plt.xlabel('U')
@@ -119,8 +192,8 @@ def d(beta_print, d_U, U_print):
 # Print kinetic energy
 def e_kin(beta_print, ekin_U, U_print):
     plt.figure()
-    for i in range(len(beta_print)):
-        print("Printing kinetic energy")
+    print("Printing kinetic energy")
+    for i in range(len(beta_print)):        
         e_kin = ekin_U[i]
         beta = beta_print[i]
         plt.xlabel('U')
@@ -129,7 +202,7 @@ def e_kin(beta_print, ekin_U, U_print):
         plt.ylim(-0.5, 0)
         plt.plot(U_print, e_kin, label='beta='+f'{beta:.3}')
         plt.legend()
-    plt.savefig("./figures/e_kin.png")
+    plt.savefig("./figures/e_kin.pdf")
 
 # Print quasi-particle weight
 def Z(beta_print, Z_U, U_print):
@@ -146,7 +219,7 @@ def Z(beta_print, Z_U, U_print):
 def get_phase(U, T, val, g_wn_U_up):
     # g for different T, U values
     g_wn = np.flipud(g_wn_U_up) # Increasing temp order
-    if np.abs(g_wn[T][U][0].imag) < val:
+    if np.abs(g_wn[T][U][int(N)].imag) < val:
         return -1             # Metallic phase
     else:
         return 1              # Insulating phase
@@ -163,8 +236,8 @@ def phase(beta_list, U_print, g_wn_U_up):
            
         for i in range(len(U_print)):
             for j in range(len(T_list)-1):
-                if get_phase(i, j, 0.15, g_wn_U_up) != \
-                   get_phase(i, j+1, 0.15, g_wn_U_up):
+                if get_phase(i, j, 1.0, g_wn_U_up) != \
+                   get_phase(i, j+1, 1.0, g_wn_U_up):
                     T_trans.append(T_list[j])
                     break
                 elif j == len(T_list)-2:    
@@ -179,5 +252,5 @@ def phase(beta_list, U_print, g_wn_U_up):
         T_mask = T_arr[T_arr > -1]
        
         plt.xlim(left = 0, right = U_max)
-        plt.plot(U_mask, T_mask)
-    plt.savefig("./figures/phase_diag.png")
+        plt.plot(U_mask, T_mask, marker='.')
+        plt.savefig("./figures/phase_diag.pdf")

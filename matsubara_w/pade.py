@@ -29,6 +29,7 @@ def pade_rec(pc, # Pade coefficient
 # Continuate the Green Function by Pade
 def pade_continuation(gf, wn, w, 
                       w_set = None):  # Index of points to sample for continuation
+    wn = wn[int(len(wn)/2):]    
     if w_set is None:
         w_set = np.arange(len(wn))
     elif isinstance(w_set, int):
