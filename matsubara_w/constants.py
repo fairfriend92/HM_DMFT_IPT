@@ -4,12 +4,12 @@ import numpy as np
 t = 0.5         # Hopping
 D = 2 * t       # Half-bandwidth
 N = 256         # Number of Matsubara frequencies
-hyst = False    # If true loop for decreasing U   
-do_pade = False # If true use Pade's continuation (not working!)
+hyst = True     # If true loop for decreasing U   
+do_pade = True  # If true use Pade's continuation (not working!)
 
 # Electron interaction
-U_min = 0.1
-dU = 0.1
+U_min = 1.5
+dU = 0.2
 U_max = 3.5
 U_list = np.arange(U_min, U_max, dU) 
 U_print = U_list   
@@ -21,12 +21,12 @@ if (hyst):
 beta_min = 4.
 beta_max = 160.
 dbeta = 8.
-beta_list = np.arange(beta_min, beta_max, dbeta) #[48.]        
+beta_list = [48.] #np.arange(beta_min, beta_max, dbeta)        
 beta_print = beta_list     
 
 # Real frequency
-dw = 0.01                             
-w = np.arange(-15, 15, dw)           
+dw = 0.1                             
+w = np.arange(-16, 16, dw)           
 
 # Energy
 de = 2.*t/256.                         

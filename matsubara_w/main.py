@@ -4,10 +4,11 @@ import dmft
 from constants import *
 from green_func import ift   
 import print_func as print_f
-from pade import pade_continuation
+from pade import my_pade
 
 ''' Main loop '''
 
+test = [[]]
 tau_U = []
 dos_U = []
 n_U = []
@@ -55,7 +56,7 @@ for beta in beta_list:
     for U in U_list:
         g_wn_up, g_wn_dn, sig_wn_up, sig_wn_dn = \
             dmft.loop(U, t, g_wn_up, g_wn_dn, wn, tau, beta, 
-                      mix=1., conv=1e-3, max_loops=50, m_start=0.)
+                      mix=1., conv=1e-3, max_loops=50, m_start=0.0)
         
         g_wn = g_wn_up
         sig_wn = sig_wn_up
@@ -65,9 +66,10 @@ for beta in beta_list:
         g_tau_dn = ift(wn, g_wn_dn, tau, beta)
         
         # Analytic continuation using Pade
+        #print(wn)
         if do_pade:
-            g_w = pade_continuation(g_wn, wn, w, w_set=None)
-            sig_w = pade_continuation(sig_wn, wn, w, w_set=None)
+            g_w = my_pade(g_wn, w, wn)
+            sig_w = my_pade(sig_wn, w, wn)
                 
         if U in U_print and beta in beta_print:           
             # Save Green functions
@@ -121,14 +123,14 @@ for beta in beta_list:
         g_tau_U_dn.append(g_tau_beta_dn)
         
 ''' Printing functions '''      
-'''
+
 print_f.green_func(beta_print, tau_U, \
                     g_wn_U_up, g_wn_U_dn, g_tau_U_up, g_tau_U_dn, \
                     U_print, hyst, wn)
 print_f.gf_iw0(beta_print, g_wn_U_up, U_print)
 print_f.n(beta_print, n_U, U_print)
 print_f.d(beta_print, d_U, U_print)
-'''
+
 print_f.e_kin(beta_print, ekin_U, U_print)
 print_f.phase(beta_list, U_print, g_wn_U_up)
 

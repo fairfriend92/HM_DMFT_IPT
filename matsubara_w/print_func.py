@@ -91,7 +91,7 @@ def dos(beta_print, w, dos_U, U_print, hyst):
             axs[j].plot(w, dos[j])   
         fig.supylabel(r'$\rho(\omega)$')    
         plt.title(r'$\beta=$'+f'{beta:.3}')
-        plt.savefig("./figures/dos_beta="+f'{beta:.3}'+".png")
+        plt.savefig("./figures/dos_beta="+f'{beta:.3}'+".pdf")
         plt.close()
 
 # Print the Green functions
@@ -154,7 +154,7 @@ def gf_iw0(beta_print, g_wn_U_up, U_print):
         g_wn = g_wn_U_up[i]
         Gw0 = []
         for g in g_wn:
-            Gw0.append(g[np.int(N/2)].imag)        
+            Gw0.append(g[int(N/2)].imag)        
         plt.figure()
         plt.xlabel(r'$U$')
         plt.ylabel(r'$g(\omega_0)$')
