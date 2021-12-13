@@ -26,7 +26,7 @@ beta_print = beta_list
 
 # Real frequency
 dw = 0.1                             
-w = np.arange(-16, 16, dw)           
+w = np.arange(-4, 4, dw)           
 
 # Energy
 de = 2.*t/256.                         

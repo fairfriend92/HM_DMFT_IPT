@@ -123,10 +123,11 @@ for beta in beta_list:
         g_tau_U_dn.append(g_tau_beta_dn)
         
 ''' Printing functions '''      
-
+'''
 print_f.green_func(beta_print, tau_U, \
                     g_wn_U_up, g_wn_U_dn, g_tau_U_up, g_tau_U_dn, \
                     U_print, hyst, wn)
+'''
 print_f.gf_iw0(beta_print, g_wn_U_up, U_print)
 print_f.n(beta_print, n_U, U_print)
 print_f.d(beta_print, d_U, U_print)
