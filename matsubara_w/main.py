@@ -2,9 +2,8 @@ import numpy as np
 import matplotlib.pylab as plt
 import dmft
 from constants import *
-from green_func import ift   
+from green_func import *   
 import print_func as print_f
-from pade import my_pade
 
 ''' Main loop '''
 
@@ -67,9 +66,8 @@ for beta in beta_list:
         
         # Analytic continuation using Pade
         #print(wn)
-        if do_pade:
-            g_w = my_pade(g_wn, w, wn)
-            sig_w = my_pade(sig_wn, w, wn)
+        g_w = pade(g_wn, w, wn)
+        sig_w = pade(sig_wn, w, wn)
                 
         if U in U_print and beta in beta_print:           
             # Save Green functions
@@ -81,8 +79,7 @@ for beta in beta_list:
             print("T="+f'{1/beta:.3f}'+"\tU="+f'{U:.3}')
                         
             # DOS
-            if do_pade:
-                dos_beta.append(-g_w.imag/np.pi)
+            dos_beta.append(-g_w.imag/np.pi)
             
             # Electron concentration for temp 1/beta and energy w
             n = np.sum(g_wn.real) + 0.5
@@ -105,9 +102,8 @@ for beta in beta_list:
             e_kin_beta.append(e_kin.real)
             
             # Quasi-particle weight
-            if do_pade:
-                dSig = (sig_w[w0_idx+1].real-sig_w[w0_idx].real)/dw
-                Z_beta.append(1/(1-dSig))
+            dSig = (sig_w[w0_idx+1].real-sig_w[w0_idx].real)/dw
+            Z_beta.append(1/(1-dSig))
     
     if beta in beta_print:
         tau_U.append(tau)
@@ -135,6 +131,5 @@ print_f.d(beta_print, d_U, U_print)
 print_f.e_kin(beta_print, ekin_U, U_print)
 print_f.phase(beta_list, U_print, g_wn_U_up)
 
-if do_pade:
-    print_f.dos(beta_print, w, dos_U, U_print, hyst)
-    print_f.Z(beta_print, Z_U, U_print)
+print_f.dos(beta_print, w, dos_U, U_print, hyst)
+print_f.Z(beta_print, Z_U, U_print)
