@@ -1,2 +1,2 @@
-# hubbard_model_dmft_ipt
+# HM_DMFT_IPT
 Code to solve the Hubbard model using Dynamical Mean Field Theory with Iterated Perturbation Theory
